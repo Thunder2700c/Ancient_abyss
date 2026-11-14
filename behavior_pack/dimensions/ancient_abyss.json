@@ -13,7 +13,7 @@
         "generator_type": "void"
       },
       "minecraft:default_biome": {
-        "biome": "minecraft:legacy_frozen_ocean"
+        "biome": "meridian:ancient_abyss_biome"
       }
     }
   }
