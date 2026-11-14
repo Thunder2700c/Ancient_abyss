@@ -4,7 +4,14 @@
     "description": {
       "identifier": "meridian:abyssal_portal",
       "states": {
-        "meridian:axis": ["x", "z"]
+        "meridian:axis": [
+          "x",
+          "z"
+        ]
+      },
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
       }
     },
     "components": {
@@ -29,7 +36,11 @@
         "condition": "q.block_state('meridian:axis') == 'z'",
         "components": {
           "minecraft:transformation": {
-            "rotation": [0, 90, 0]
+            "rotation": [
+              0,
+              90,
+              0
+            ]
           }
         }
       }
