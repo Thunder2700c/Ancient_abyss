@@ -88,3 +88,9 @@ message.meridian.herobrine_creative_ban=§4§l[HEROBRINE]§r §cYou dared challe
 message.meridian.herobrine_cheat_lock=§4§l[Access Denied]§r §7Herobrine rewrote your console. Commands locked for 10 hours.
 message.meridian.survivor_dialogue_1=§6[The Broken Survivor]§r §7Turn back. Please... just turn around.
 message.meridian.survivor_dialogue_yield=§6[The Broken Survivor]§r §7Enough... stop swinging. My fight ends here.
+
+## Ancient Abyss creative inventory groups
+meridian:itemGroup.name.abyss_blocks=Ancient Abyss Blocks
+meridian:itemGroup.name.abyss_flora=Ancient Abyss Flora
+meridian:itemGroup.name.abyss_equipment=Abyssalite Equipment
+meridian:itemGroup.name.abyss_items=Ancient Abyss Items
