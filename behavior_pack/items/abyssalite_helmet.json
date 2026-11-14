@@ -1,0 +1,41 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:item": {
+    "description": {
+      "identifier": "meridian:abyssalite_helmet",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": "abyssalite_helmet",
+      "minecraft:max_stack_size": 1,
+      "minecraft:hover_text_color": "dark_purple",
+      "minecraft:wearable": {
+        "slot": "slot.armor.head",
+        "protection": 4
+      },
+      "minecraft:durability": {
+        "max_durability": 550
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": ["meridian:abyssalite_ingot"],
+            "repair_amount": "context.other->query.remaining_durability + 140"
+          }
+        ]
+      },
+      "minecraft:enchantable": {
+        "slot": "armor_head",
+        "value": 18
+      },
+      "minecraft:tags": {
+        "tags": [
+          "minecraft:is_armor",
+          "meridian:abyssalite_armor"
+        ]
+      }
+    }
+  }
+}

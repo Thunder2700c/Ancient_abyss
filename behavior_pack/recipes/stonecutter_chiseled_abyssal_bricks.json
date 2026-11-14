@@ -1,0 +1,17 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:recipe_shapeless": {
+    "description": {
+      "identifier": "meridian:stonecutter_chiseled_abyssal_bricks"
+    },
+    "tags": ["stonecutter"],
+    "ingredients": [
+      {
+        "item": "meridian:polished_slate"
+      }
+    ],
+    "result": {
+      "item": "meridian:chiseled_abyssal_bricks"
+    }
+  }
+}

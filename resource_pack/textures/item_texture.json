@@ -1,0 +1,66 @@
+{
+  "resource_pack_name": "ancient_abyss_rp",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "null_core": {
+      "textures": "textures/items/null_core"
+    },
+    "raw_abyssal_silt": {
+      "textures": "textures/items/raw_abyssal_silt"
+    },
+    "abyssal_slag": {
+      "textures": "textures/items/abyssal_slag"
+    },
+    "abyssalite_ingot": {
+      "textures": "textures/items/abyssalite_ingot"
+    },
+    "abyss_upgrade_smithing_template": {
+      "textures": "textures/items/abyss_upgrade_smithing_template"
+    },
+    "gloom_stick": {
+      "textures": "textures/items/gloom_stick"
+    },
+    "gloom_door": {
+      "textures": "textures/items/gloom_door"
+    },
+    "abyssal_anchor": {
+      "textures": "textures/items/abyssal_anchor"
+    },
+    "resonant_core": {
+      "textures": "textures/items/resonant_core"
+    },
+    "inverted_recall_sigil": {
+      "textures": "textures/items/inverted_recall_sigil"
+    },
+    "heart_of_herobrine": {
+      "textures": "textures/items/heart_of_herobrine"
+    },
+    "abyssalite_sword": {
+      "textures": "textures/items/abyssalite_sword"
+    },
+    "abyssalite_pickaxe": {
+      "textures": "textures/items/abyssalite_pickaxe"
+    },
+    "abyssalite_axe": {
+      "textures": "textures/items/abyssalite_axe"
+    },
+    "abyssalite_shovel": {
+      "textures": "textures/items/abyssalite_shovel"
+    },
+    "abyssalite_hoe": {
+      "textures": "textures/items/abyssalite_hoe"
+    },
+    "abyssalite_helmet": {
+      "textures": "textures/items/abyssalite_helmet"
+    },
+    "abyssalite_chestplate": {
+      "textures": "textures/items/abyssalite_chestplate"
+    },
+    "abyssalite_leggings": {
+      "textures": "textures/items/abyssalite_leggings"
+    },
+    "abyssalite_boots": {
+      "textures": "textures/items/abyssalite_boots"
+    }
+  }
+}

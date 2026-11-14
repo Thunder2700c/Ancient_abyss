@@ -1,0 +1,18 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.echo_dweller.walk": {
+      "loop": true,
+      "bones": {
+        "leg0": { "rotation": ["math.cos(query.modified_distance_moved * 38.17) * 70", 0, 0] },
+        "leg1": { "rotation": ["math.cos(query.modified_distance_moved * 38.17 + 180) * 70", 0, 0] }
+      }
+    },
+    "animation.echo_dweller.look": {
+      "loop": true,
+      "bones": {
+        "head": { "rotation": ["query.target_x_rotation", "query.target_y_rotation", 0] }
+      }
+    }
+  }
+}

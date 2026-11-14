@@ -1,0 +1,31 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:block": {
+    "description": {
+      "identifier": "meridian:gloom_slab"
+    },
+    "components": {
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 2.0
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 3.0
+      },
+      "minecraft:geometry": "geometry.gloom_slab",
+      "minecraft:collision_box": {
+        "origin": [-8, 0, -8],
+        "size": [16, 8, 16]
+      },
+      "minecraft:selection_box": {
+        "origin": [-8, 0, -8],
+        "size": [16, 8, 16]
+      },
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "gloom_planks",
+          "render_method": "opaque"
+        }
+      }
+    }
+  }
+}

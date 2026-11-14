@@ -1,0 +1,19 @@
+{
+  "format_version": "1.21.40",
+  "minecraft:client_biome": {
+    "description": {
+      "identifier": "legacy_frozen_ocean"
+    },
+    "components": {
+      "minecraft:sky_color": {
+        "sky_color": "#02040d"
+      },
+      "minecraft:fog_appearance": {
+        "fog_identifier": "meridian:abyss_fog"
+      },
+      "minecraft:water_appearance": {
+        "surface_color": "#04101f"
+      }
+    }
+  }
+}
