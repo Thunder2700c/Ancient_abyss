@@ -7,7 +7,6 @@ import { world, system, BlockVolume } from "@minecraft/server";
 import { getAbyss, isInAbyss } from "./dimension.js";
 import { sanctuarySteps } from "./sanctuary.js";
 
-const DIMENSION_ID = "meridian:ancient_abyss";
 const FLOOR_MIN = -58;
 const FLOOR_RANGE = 80;
 const CEILING_TOP = 319;
@@ -120,11 +119,7 @@ function put(dimension, x1, y1, z1, x2, y2, z2, id) {
     y: maxY,
     z: Math.max(z1, z2)
   };
-  try {
-    dimension.fillBlocks(new BlockVolume(from, to), block(id));
-  } catch (error) {
-    console.warn("[meridian] Could not place terrain block " + id + " at " + from.x + "," + from.y + "," + from.z + ": " + error);
-  }
+  dimension.fillBlocks(new BlockVolume(from, to), block(id));
 }
 
 function generateCell(dimension, x, z) {
