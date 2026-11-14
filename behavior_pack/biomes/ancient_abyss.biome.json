@@ -1,0 +1,17 @@
+{
+  "format_version": "1.26.0",
+  "minecraft:biome": {
+    "description": {
+      "identifier": "meridian:ancient_abyss_biome"
+    },
+    "components": {
+      "minecraft:climate": {
+        "temperature": 0.0,
+        "downfall": 0.0
+      },
+      "minecraft:tags": {
+        "tags": ["meridian:ancient_abyss"]
+      }
+    }
+  }
+}
