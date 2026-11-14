@@ -7,7 +7,7 @@ function getCocoonKey(block) {
   return `cocoon_charges_${block.dimension.id}_${block.location.x}_${block.location.y}_${block.location.z}`;
 }
 
-world.beforeEvents.itemUseOn.subscribe((event) => {
+world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   const { block, player, itemStack } = event;
   const dim = player.dimension;
 
