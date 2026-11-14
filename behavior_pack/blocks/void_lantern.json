@@ -46,7 +46,7 @@
         "*": {
           "texture": "void_lantern",
           "render_method": "blend",
-          "ambient_occlusion": false
+          "ambient_occlusion": 0
         }
       }
     }
