@@ -4,7 +4,8 @@
     "description": {
       "identifier": "meridian:gloom_stick",
       "menu_category": {
-        "category": "items"
+        "category": "items",
+        "group": "meridian:itemGroup.name.abyss_items"
       }
     },
     "components": {
