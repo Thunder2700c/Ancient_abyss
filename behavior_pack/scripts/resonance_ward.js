@@ -94,11 +94,9 @@ system.runInterval(() => {
         const dist = Math.hypot(diffX, diffZ) || 1;
 
         mob.applyKnockback({
-          x: diffX / dist,
-          z: diffZ / dist,
-          horizontalStrength: 0.9,
-          verticalStrength: 0.1
-        });
+          x: (diffX / dist) * 0.9,
+          z: (diffZ / dist) * 0.9
+        }, 0.1);
       }
     }
   }
