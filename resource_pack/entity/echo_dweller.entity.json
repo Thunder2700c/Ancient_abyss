@@ -1,13 +1,29 @@
 {
-	"format_version": "1.10.0",
-	"minecraft:client_entity": {
-		"description": {
-			"identifier": "meridian:echo_dweller",
-			"materials": { "default": "entity_alphatest" },
-			"textures": { "default": "textures/entity/echo_dweller/echo_dweller" },
-			"geometry": { "default": "geometry.echo_dweller" },
-			"render_controllers": ["controller.render.default"],
-			"spawn_egg": { "texture": "spawn_egg_echo_dweller" }
-		}
-	}
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "meridian:echo_dweller",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/echo_dweller/echo_dweller"
+      },
+      "geometry": {
+        "default": "geometry.echo_dweller"
+      },
+      "animations": {
+        "walk": "animation.echo_dweller.walk",
+        "look": "animation.echo_dweller.look"
+      },
+      "scripts": {
+        "animate": ["walk", "look"]
+      },
+      "render_controllers": ["controller.render.echo_dweller"],
+      "spawn_egg": {
+        "base_color": "#172b3b",
+        "overlay_color": "#8cecff"
+      }
+    }
+  }
 }

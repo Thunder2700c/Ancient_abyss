@@ -5,7 +5,7 @@
       "identifier": "meridian:hollow_receptacle_tear",
       "basic_render_parameters": {
         "material": "particles_blend",
-        "texture": "textures/particles/particles"
+        "texture": "textures/particle/particles"
       }
     },
     "components": {
@@ -24,21 +24,39 @@
       },
       "minecraft:particle_initial_speed": 3.5,
       "minecraft:particle_motion_dynamic": {
-        "linear_acceleration": [0.0, 0.5, 0.0],
-        "linear_drag_coefficient": 1.0
+        "linear_acceleration": [
+          0,
+          0.5,
+          0
+        ],
+        "linear_drag_coefficient": 1
       },
       "minecraft:particle_appearance_billboard": {
-        "size": [0.18, 0.18],
+        "size": [
+          0.18,
+          0.18
+        ],
         "facing_camera_mode": "rotate_xyz",
         "uv": {
           "texture_width": 128,
           "texture_height": 128,
-          "uv": [16, 0],
-          "uv_size": [8, 8]
+          "uv": [
+            16,
+            0
+          ],
+          "uv_size": [
+            8,
+            8
+          ]
         }
       },
       "minecraft:particle_appearance_tinting": {
-        "color": [0.85, 0.05, 0.15, 0.95]
+        "color": [
+          0.85,
+          0.05,
+          0.15,
+          0.95
+        ]
       }
     }
   }

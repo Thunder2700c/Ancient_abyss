@@ -5,7 +5,7 @@
       "identifier": "meridian:sculk_altar",
       "menu_category": {
         "category": "construction",
-        "group": "meridian:abyss_blocks"
+        "group": "meridian:itemGroup.name.abyss_blocks"
       }
     },
     "components": {

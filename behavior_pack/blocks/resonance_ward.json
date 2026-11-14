@@ -2,14 +2,18 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:resonance_ward"
+      "identifier": "meridian:resonance_ward",
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 5.0
+        "seconds_to_destroy": 5
       },
       "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 12.0
+        "explosion_resistance": 12
       },
       "minecraft:geometry": "minecraft:geometry.full_block",
       "minecraft:material_instances": {

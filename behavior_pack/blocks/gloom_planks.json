@@ -2,14 +2,18 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:gloom_planks"
+      "identifier": "meridian:gloom_planks",
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 2.0
+        "seconds_to_destroy": 2
       },
       "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 3.0
+        "explosion_resistance": 3
       },
       "minecraft:geometry": "minecraft:geometry.full_block",
       "minecraft:material_instances": {

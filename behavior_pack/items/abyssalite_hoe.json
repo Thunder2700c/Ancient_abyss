@@ -4,7 +4,8 @@
     "description": {
       "identifier": "meridian:abyssalite_hoe",
       "menu_category": {
-        "category": "equipment"
+        "category": "equipment",
+        "group": "meridian:itemGroup.name.abyss_equipment"
       }
     },
     "components": {
@@ -27,7 +28,9 @@
       "minecraft:repairable": {
         "repair_items": [
           {
-            "items": ["meridian:abyssalite_ingot"],
+            "items": [
+              "meridian:abyssalite_ingot"
+            ],
             "repair_amount": "context.other->query.remaining_durability + 700"
           }
         ]

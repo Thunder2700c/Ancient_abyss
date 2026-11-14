@@ -5,7 +5,7 @@
       "identifier": "meridian:abyssalite_ingot",
       "menu_category": {
         "category": "items",
-        "group": "meridian:abyss_items"
+        "group": "meridian:itemGroup.name.abyss_items"
       }
     },
     "components": {

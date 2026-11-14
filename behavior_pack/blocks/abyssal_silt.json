@@ -2,7 +2,11 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:abyssal_silt"
+      "identifier": "meridian:abyssal_silt",
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {

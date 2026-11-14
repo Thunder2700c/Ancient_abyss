@@ -2,7 +2,11 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:glow_polyps"
+      "identifier": "meridian:glow_polyps",
+      "menu_category": {
+        "category": "nature",
+        "group": "meridian:itemGroup.name.abyss_flora"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
@@ -13,8 +17,16 @@
       },
       "minecraft:collision_box": false,
       "minecraft:selection_box": {
-        "origin": [-6, 0, -6],
-        "size": [12, 12, 12]
+        "origin": [
+          -6,
+          0,
+          -6
+        ],
+        "size": [
+          12,
+          12,
+          12
+        ]
       },
       "minecraft:light_emission": 7,
       "minecraft:light_dampening": 0,
@@ -23,7 +35,7 @@
         "*": {
           "texture": "glow_polyps",
           "render_method": "alpha_test",
-          "ambient_occlusion": false,
+          "ambient_occlusion": 0,
           "face_dimming": false
         }
       }

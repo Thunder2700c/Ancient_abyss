@@ -5,26 +5,42 @@
       "identifier": "meridian:fractured_slate_slab",
       "menu_category": {
         "category": "construction",
-        "group": "meridian:abyss_blocks"
+        "group": "meridian:itemGroup.name.abyss_blocks"
       }
     },
     "components": {
       "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 3.0
+        "seconds_to_destroy": 3
       },
       "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 6.0
+        "explosion_resistance": 6
       },
       "minecraft:geometry": {
         "identifier": "geometry.slate_slab"
       },
       "minecraft:collision_box": {
-        "origin": [-8, 0, -8],
-        "size": [16, 8, 16]
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          8,
+          16
+        ]
       },
       "minecraft:selection_box": {
-        "origin": [-8, 0, -8],
-        "size": [16, 8, 16]
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          8,
+          16
+        ]
       },
       "minecraft:material_instances": {
         "*": {
