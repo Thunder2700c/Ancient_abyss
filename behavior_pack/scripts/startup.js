@@ -4,7 +4,7 @@
 // Later phases add their imports below the echo dweller import.
 
 import { system } from "@minecraft/server";
-import { registerAbyssDimension, initAbyssEnvironment } from "./dimension.js";
+import { initAbyssEnvironment } from "./dimension.js";
 import { registerTransitCommands, initTransit } from "./transit.js";
 import { initVoidTether } from "./void_tether.js";
 import { initRitual, registerRitualCommands } from "./ritual.js";
@@ -14,7 +14,6 @@ import { initFog } from "./fog.js";
 import { initEchoDweller, registerDwellerCommands } from "./echo_dweller.js";
 
 system.beforeEvents.startup.subscribe((event) => {
-  registerAbyssDimension(event.dimensionRegistry);
   registerTransitCommands(event.customCommandRegistry);
   registerRitualCommands(event.customCommandRegistry);
   registerAbyssaliteCommands(event.customCommandRegistry);
