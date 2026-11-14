@@ -62,11 +62,9 @@ world.beforeEvents.itemUseOn.subscribe((event) => {
           const dist = Math.hypot(diffX, diffZ) || 1;
 
           entity.applyKnockback({
-            x: diffX / dist,
-            z: diffZ / dist,
-            horizontalStrength: 1.8,
-            verticalStrength: -0.5
-          });
+            x: (diffX / dist) * 1.8,
+            z: (diffZ / dist) * 1.8
+          }, -0.5);
 
           if (entity.typeId === "minecraft:player") {
             entity.addEffect("darkness", 300, { amplifier: 0, showParticles: false });
