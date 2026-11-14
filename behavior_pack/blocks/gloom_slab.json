@@ -2,23 +2,43 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:gloom_slab"
+      "identifier": "meridian:gloom_slab",
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 2.0
+        "seconds_to_destroy": 2
       },
       "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 3.0
+        "explosion_resistance": 3
       },
       "minecraft:geometry": "geometry.gloom_slab",
       "minecraft:collision_box": {
-        "origin": [-8, 0, -8],
-        "size": [16, 8, 16]
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          8,
+          16
+        ]
       },
       "minecraft:selection_box": {
-        "origin": [-8, 0, -8],
-        "size": [16, 8, 16]
+        "origin": [
+          -8,
+          0,
+          -8
+        ],
+        "size": [
+          16,
+          8,
+          16
+        ]
       },
       "minecraft:material_instances": {
         "*": {
