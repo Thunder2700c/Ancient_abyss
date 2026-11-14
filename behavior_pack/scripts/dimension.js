@@ -1,5 +1,6 @@
 // behavior_pack/scripts/dimension.js
-// PHASE 3 - The Ancient Abyss: dimension registration, bounds, environment.
+// The custom dimension is declared in behavior_pack/dimensions/ancient_abyss.json.
+// This module resolves that JSON-defined dimension and manages its environment.
 //
 // Verified against the Bedrock Wiki connector:
 //   - DimensionRegistry.registerCustomDimension(typeId) exists, must run in system.beforeEvents.startup,
@@ -10,8 +11,8 @@
 // ---------------------------------------------------------------------------
 // LIMITATION REPORT (Phase 3)
 // ---------------------------------------------------------------------------
-// 1. World bounds Y -64..320 (384 tall): SUPPORTED. A script-registered custom dimension uses the default
-//    height range (-64 to 320). verifyAbyssBounds() reads Dimension.heightRange on world load and warns if it differs.
+// 1. World bounds Y -64..320 (384 tall): SUPPORTED by the custom dimension JSON. verifyAbyssBounds()
+//    reads Dimension.heightRange on world load and reports whether the loaded dimension matches.
 //
 // 2. Fixed time 18000: NOT POSSIBLE IN BEDROCK (per-dimension). Reason: WorldClockRegistry.registerClock exists,
 //    but no documented API binds a custom dimension to its own clock; the time of day stays global.
@@ -102,14 +103,6 @@ export function abyssToOverworld(position, y = OVERWORLD_RETURN_Y) {
   };
 }
 
-export function registerAbyssDimension(dimensionRegistry) {
-  try {
-    dimensionRegistry.registerCustomDimension(ABYSS_ID);
-  } catch (error) {
-    console.warn("[meridian] Script registration of " + ABYSS_ID + " skipped (the dimensions/ancient_abyss.json file takes priority): " + error);
-  }
-}
-
 function verifyAbyssBounds() {
   const abyss = getAbyss();
   if (!abyss) {
@@ -121,7 +114,7 @@ function verifyAbyssBounds() {
     if (range.min !== ABYSS_MIN_Y || range.max !== ABYSS_MAX_Y) {
       console.warn("[meridian] Abyss height range is " + range.min + " to " + range.max + ", expected " + ABYSS_MIN_Y + " to " + ABYSS_MAX_Y + ".");
     } else {
-      console.warn("[meridian] Abyss registered. Height range " + range.min + " to " + range.max + " confirmed.");
+      console.info("[meridian] Abyss registered. Height range " + range.min + " to " + range.max + " confirmed.");
     }
   } catch (error) {
     console.warn("[meridian] Could not read Abyss height range: " + error);
