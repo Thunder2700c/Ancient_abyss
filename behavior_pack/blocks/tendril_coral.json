@@ -2,7 +2,11 @@
   "format_version": "1.21.60",
   "minecraft:block": {
     "description": {
-      "identifier": "meridian:tendril_coral"
+      "identifier": "meridian:tendril_coral",
+      "menu_category": {
+        "category": "nature",
+        "group": "meridian:itemGroup.name.abyss_flora"
+      }
     },
     "components": {
       "minecraft:destructible_by_mining": {
@@ -13,8 +17,16 @@
       },
       "minecraft:collision_box": false,
       "minecraft:selection_box": {
-        "origin": [-6, 0, -6],
-        "size": [12, 14, 12]
+        "origin": [
+          -6,
+          0,
+          -6
+        ],
+        "size": [
+          12,
+          14,
+          12
+        ]
       },
       "minecraft:light_emission": 7,
       "minecraft:light_dampening": 0,
