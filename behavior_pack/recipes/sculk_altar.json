@@ -25,6 +25,11 @@
     },
     "result": {
       "item": "meridian:sculk_altar"
-    }
+    },
+    "unlock": [
+      {
+        "item": "minecraft:echo_shard"
+      }
+    ]
   }
 }
