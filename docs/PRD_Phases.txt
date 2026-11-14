@@ -1,0 +1,225 @@
+RULES (OBEY ALWAYS)
+- Do NOT use any MCP connector. Do NOT browse. Do NOT search docs. Do NOT plan.
+- Do NOT summarize the PRD. Do NOT restate requirements.
+- Do NOT output more than one phase per message, ever.
+- Every file must be complete. No "...", no TODO, no placeholders, no truncation.
+- Accuracy over optimism. If Bedrock API cannot do it, write "NOT POSSIBLE IN BEDROCK"
+  + one-line reason + closest workaround. Never fake a feature.
+- Target: Minecraft Bedrock 1.26.52.3+, Beta APIs ON, @minecraft/server beta module,
+  pure .js, no npm.
+- Use dynamic properties for all persistent state (cooldowns, trust, charges, timers).
+
+STEP 1 — DO NOW, NOTHING ELSE
+Output ONLY the 30-line index below. No code, no intro, no explanation. Then stop
+and wait for me to say "Phase N".
+
+STEP 2 — WHEN I SAY "Phase N"
+Output ONLY that phase's files, complete, in build order, each with its full path
+as a header. Nothing before, nothing after, no commentary. Then stop.
+
+═══════════ THE 30 PHASES ═══════════
+
+PHASE 1 — Manifests + folder tree
+- behavior_pack/manifest.json: data module, script module (@minecraft/server beta),
+  min_engine_version [1,26,0], correct UUIDs, dependencies on RP
+- resource_pack/manifest.json: resources module, correct UUIDs
+- Full folder tree of both packs
+- Note where pack_icon.png goes (16x16 placeholder name)
+
+PHASE 2 — Resource pack assets
+- texts/en_US.lang with all block/item/entity display names
+- textures/item_texture.json, terrain_texture.json, flipbook_textures.json (if needed)
+- List every texture filename required (placeholders OK, name them)
+
+PHASE 3 — Dimension registration
+- behavior_pack/scripts/startup.js
+- system.beforeEvents.startup → event.dimensionRegistry.registerCustomDimension
+  ("meridian:ancient_abyss")
+- Bounds Y=-64 to Y=320
+- Fixed time 18000, ambient light floor 0.08, no natural skylight
+- Coordinate scale 16:1 — if not supported in API, print NOT POSSIBLE + workaround
+- Water does not evaporate — flag if unsupported
+
+PHASE 4 — Transit + safe landing
+- Script: on player entry → generate safe landing platform at Y=32
+- Return transit → teleport to Y=-50 in Overworld near Ancient City
+- Portal contact detection events
+
+PHASE 5 — Void Tether + Anti-Elytra
+- Player falls below Y=-70 in Abyss → launch 20 blocks up, 10s Slow Falling,
+  3-minute per-player cooldown via dynamic property
+- Elytra gliding detection in Abyss → rapid durability drain + cancel firework
+  propulsion (workaround since no native disable flag exists)
+
+PHASE 6 — Portal blocks
+- meridian:sculk_altar — hardness -1, unbreakable in survival, BP+RP JSONs
+- meridian:abyssal_portal — no collision, light level 4, particle emitter,
+  transit on contact, BP+RP JSONs
+
+PHASE 7 — Null Core
+- meridian:null_core item, BP+RP
+- End Ship loot table injection: chest behind Elytra frame, guarded by 2 Shulkers
+
+PHASE 8 — Ritual ignition
+- Script: detect 4 Null Cores on 4 Chiseled Deepslate Pedestals + Dragon Egg on
+  Sculk Altar inside 30x30 Reinforced Deepslate frame
+- Sequence: purple beams from cores to egg → 5s Darkness to nearby players →
+  reverse Warden roar sound event → frame interior fills with abyssal_portal block
+- Dragon Egg NEVER consumed — locks in place as permanent conduit
+
+PHASE 9 — Echo Shard fallback transit
+- Right-click Reinforced Deepslate with Echo Shard → sonic boom particles →
+  charge frame → teleport to Y=32 in Abyss
+- Return teleports to Y=-50 Overworld
+
+PHASE 10 — Abyssal Silt
+- meridian:abyssal_silt — speed -40% unless Depth Strider or Abyssalite boots,
+  dampens vibration events on its surface
+- Blast Furnace smelt → meridian:abyssal_slag
+- BP+RP + recipe JSONs
+
+PHASE 11 — Slate set
+- meridian:fractured_slate, meridian:polished_slate
+- Slabs + stairs variants for both
+- BP+RP + recipe JSONs
+
+PHASE 12 — Bricks + Gloomstone
+- meridian:chiseled_abyssal_bricks (hardness 4, blast 9)
+- meridian:gloomstone — absorbs -2 block light within 3-block radius
+- BP+RP + recipes
+
+PHASE 13 — Sulfuric Basalt
+- meridian:sulfuric_basalt — 4 armor-piercing thermal damage/sec to players
+  standing or mining on it without sneaking
+- Steam particle emitter
+- Contains embedded raw_abyssal_silt nodes (custom drop)
+- BP+RP
+
+PHASE 14 — Petrified Gloom-Roots wood set
+- meridian:petrified_gloom_roots (log)
+- planks, slabs, stairs, doors, sticks (soundproofing material)
+- BP+RP + all recipes
+
+PHASE 15 — Flora + Void Lantern
+- meridian:glow_polyps, meridian:tendril_coral — light level 7, no heat
+- meridian:void_lantern — light 10, blocks hostile spawns in 16-block radius,
+  crafted from Iron Lantern + Echo Shard
+- BP+RP + recipes
+
+PHASE 16 — Resonance Ward
+- meridian:resonance_ward — 32-block spherical vibration dead-zone,
+  prevents hostile mob pathfinding into zone
+- Recipe: 4 Amethyst Shards + 4 Padded Wool + 1 Calibrated Sculk Core
+- BP+RP + recipe
+
+PHASE 17 — Resonance Cocoon
+- meridian:resonance_cocoon — holds 4 Echo Shard charges, sets spawn point,
+  cleanses Darkness/Blindness/Slowness, grants Regen II 30s + 2 Absorption Hearts
+- Cross-dimensional explosion matrix per PRD section 6:
+  Overworld/Nether/End → implosion (pull inward 1s, Darkness+Nausea 15s)
+  Abyss → normal spawn set, consumes 1 charge, resets to Overworld if 0 charges
+- BP+RP
+
+PHASE 18 — Hollow Receptacle
+- meridian:hollow_receptacle — unbreakable, Trial Vault behavior
+- Accepts ONLY meridian:heart_of_herobrine
+- On insert: lightning, Herobrine resurrection, eject all players to spawn
+- BP+RP
+
+PHASE 19 — Abyssalite materials
+- meridian:raw_abyssal_silt, meridian:abyssal_slag, meridian:abyssalite_ingot
+- meridian:abyss_upgrade_smithing_template
+- Recipes: smelt raw → slag; 1 slag + 2 Gold Ingot + 2 Crying Obsidian → 1 ingot
+- BP+RP + recipe JSONs
+
+PHASE 20 — Abyssalite gear
+- Full tool set + armor set (sword, pickaxe, axe, shovel, hoe, helmet, chest,
+  leggings, boots)
+- Void Tether passive on full armor set
+- Pickaxe harvests Reinforced Deepslate
+- Bonus damage vs Sculk-mutated entities
+- Pierces Herobrine's Glitch Barrier
+- Smithing Table upgrade recipes from Netherite + template + ingot
+- BP+RP
+
+PHASE 21 — Biome strata approximation
+- NOTE: Bedrock Script API has NO native custom biome or chunk generation
+- Implement scripted block placement on first dimension load per Y-strata:
+  Hadal Trenches (Y -64 to 30), Hydrothermal Fissures (Y 30 to 120),
+  Inverted Necropolis (Y 120 to 320)
+- Clearly label as approximation
+
+PHASE 22 — Echo Dweller
+- meridian:echo_dweller — passive, harmonic chime sounds, no combat
+- Trust score stored in dynamic properties
+- Soundproof Sanctuary bell-dome structure template
+- BP+RP + spawn egg
+
+PHASE 23 — Harmonic barter
+- Custom trade UI
+- Tier 1: 4 Amethyst Shards + 2 Wool → Padded Treads (boots enchant)
+- Tier 2: 1 Calibrated Sculk Sensor + 4 Echo Shards → Abyssal Anchor
+- Tier 3: 1 Resonant Core + 16 Crying Obsidian → Abyss Upgrade Smithing Template
+- Trust gain: clearing Sculk tendrils/shriekers, donating to village pylon,
+  healing Resonant Wardens
+
+PHASE 24 — Resonant Warden
+- meridian:resonant_warden — multiblock assembly:
+  Sculk Block (base), Sculk Catalyst (torso), 2 Sculk Sensors (arms),
+  Calibrated Sculk Sensor (head) + Echo Shard
+- Auditory filter: ignores player footfalls, chest openings, Dweller chimes
+- Concussive sonic burst: knockback + Slowness + Weakness (non-lethal)
+- Iron Golem-style loyalty, healed by Sculk Veins / Echo Shards
+- BP+RP
+
+PHASE 25 — Tri-Citadel: Earth duo
+- meridian:tectonic_weft_mage + meridian:tectonic_colossus_warden
+- Mage raises bedrock barriers + stalactites, tethered to Warden via obsidian
+  chains, launches Warden as battering ram
+- BP+RP
+
+PHASE 26 — Tri-Citadel: Cryo duo
+- meridian:frost_siphon_mage + meridian:frostbitten_warden
+- Mage lays permafrost + blinding blizzards, locks player movement
+- Warden fires freeze-inflicting sonic beams
+- BP+RP
+
+PHASE 27 — Tri-Citadel: Void duo + Sigil
+- meridian:rift_arcanist_mage + meridian:singularity_warden
+- Mage blinks + spawns micro-black holes
+- Warden opens chest core → inverted pull roar (all players within 20 blocks)
+- Drop: meridian:inverted_recall_sigil → tethers to player → teleports to Mage
+  inner threshold
+- BP+RP
+
+PHASE 28 — Broken Survivor
+- meridian:broken_survivor — elite PvP AI: shield parry, axe crits, Ender Pearl
+  flank, splash Harming/Slowness, cobweb traps, lava bucket drops
+- 3 lives (2 Totems of Undying)
+- Yields at <10% HP on final life
+- Dialogue lines + surrender choice gate (walk away vs enter archway)
+- BP+RP
+
+PHASE 29 — Herobrine part 1
+- meridian:herobrine — passive until struck
+- Blast/fire/indirect damage immunity
+- Spectator tracking through walls
+- Specter's Clarity buff for quiet observers: Night Vision + True Sight +
+  15min Vibration Immunity
+- Survival kit: rigid glide at 1.4x sprint, 90° head snaps, glitch teleports,
+  80% Glitch Barrier (bypassed ONLY by Abyssalite), white lightning via
+  redstone torch rings, 3x3 cobble cages, 3 phantom clones below 30% HP
+- Out-of-combat /tp allowed; in-combat command firewall locks all commands
+- BP+RP
+
+PHASE 30 — Herobrine part 2 + install checklist
+- Creative Godbreaker: Void Choke 500+ void dmg bypassing Creative invuln,
+  forced Survival, 48 real-world-hour Creative lockout via dynamic properties
+  (per-player isolated, other players unaffected)
+- Anti-cheat: /kill reflect + 10h cheat lock, /tp inversion, /give corruption
+- Death: silence, static dissolve, drop meridian:heart_of_herobrine
+- Hollow Receptacle resurrection loop + Amnesiac Curse for Broken Survivor
+- Full INSTALL & TEST checklist
+- BP+RP
+
+═══════════ END ═══════════
