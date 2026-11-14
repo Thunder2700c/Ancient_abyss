@@ -27,7 +27,7 @@
           "texture": "abyssal_portal",
           "render_method": "blend",
           "face_dimming": false,
-          "ambient_occlusion": false
+          "ambient_occlusion": 0
         }
       }
     },
