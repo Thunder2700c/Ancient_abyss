@@ -1,0 +1,19 @@
+{
+  "format_version": "1.21.130",
+  "minecraft:client_biome": {
+    "description": {
+      "identifier": "meridian:ancient_abyss_biome"
+    },
+    "components": {
+      "minecraft:sky_color": {
+        "sky_color": "#02040d"
+      },
+      "minecraft:fog_appearance": {
+        "fog_identifier": "meridian:abyss_fog"
+      },
+      "minecraft:water_appearance": {
+        "surface_color": "#04101f"
+      }
+    }
+  }
+}
