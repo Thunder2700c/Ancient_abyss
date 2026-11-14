@@ -1,37 +1,9 @@
 [
-{
-  "flipbook_texture": "textures/blocks/abyssal_portal",
-  "atlas_tile": "abyssal_portal",
-  "ticks_per_frame": 2,
-  "frames": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],
-  "replicate": 1
- },
   {
-    "flipbook_texture": "textures/blocks/sulfuric_basalt_active",
-    "atlas_tile": "sulfuric_basalt_active",
-    "ticks_per_frame": 4
-  },
-  {
-    "flipbook_texture": "textures/blocks/resonance_cocoon_active",
-    "atlas_tile": "resonance_cocoon_active",
-    "ticks_per_frame": 3
-  },
-  {
-    "flipbook_texture": "textures/blocks/hollow_receptacle_portal",
-    "atlas_tile": "hollow_receptacle_portal",
-    "ticks_per_frame": 2
-  }
-]
-face_dimming": false,
-          "ambient_occlusion": false
-        }
-      }
-    }
-  }
-}
-"atlas_tile": "hollow_receptacle_portal",
+    "flipbook_texture": "textures/blocks/abyssal_portal",
+    "atlas_tile": "abyssal_portal",
     "ticks_per_frame": 2,
-    "frames": [0, 1, 2, 3],
+    "frames": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
     "replicate": 1
   }
 ]
