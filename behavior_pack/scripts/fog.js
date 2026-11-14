@@ -2,12 +2,12 @@
 // ATMOSPHERE - navy hadal fog and floating cyan "marine snow" for meridian:ancient_abyss.
 //
 // Needs two resource pack files:
-//   resource_pack/fog/abyss_fog.json                      (fog id meridian:abyss_fog)
+//   resource_pack/fogs/abyss_fog.json                      (fog id meridian:abyss_fog)
 //   resource_pack/particles/marine_snow.particle.json     (particle id meridian:marine_snow)
 //
-// NOT POSSIBLE IN BEDROCK: a per-dimension skybox or fog through the dimension itself. The dimension has no custom
-// biome, so biomes_client.json cannot target it. APPROXIMATION: while a player is in the Abyss this script pushes the fog
-// to that player with the /fog command and removes it when they leave. The fog is client side per player.
+// A per-dimension skybox is not exposed by the Script API. The custom dimension's default biome is configured in
+// behavior_pack/biomes/ancient_abyss.biome.json and resource_pack/biomes/ancient_abyss_biome.client_biome.json.
+// This script additionally pushes the fog to each player while in the Abyss and removes it when they leave.
 // The fog is deliberately short ranged (about 36 blocks) and near-black navy for the Genshin style abyss mood.
 
 import { world, system } from "@minecraft/server";
