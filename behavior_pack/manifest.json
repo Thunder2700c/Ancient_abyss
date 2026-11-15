@@ -5,7 +5,7 @@
     "description": "Cosmological physics, dimensional logic, and entities for The Ancient Abyss",
     "uuid": "d4e5f6a7-b8c9-40d1-e2f3-a4b5c6d7e8f9",
     "version": [1, 0, 0],
-    "min_engine_version": [1, 26, 0]
+    "min_engine_version": [1, 26, 40]
   },
   "modules": [
     {
