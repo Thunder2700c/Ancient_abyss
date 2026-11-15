@@ -11,8 +11,9 @@
 // - Portal contact: a no-collision custom block has no reliable "entity inside" event in the Script API, so contact is
 //   detected by polling the feet and head block of every player every 5 ticks (APPROXIMATION of a touch trigger).
 // - 16:1 scaling: NOT POSSIBLE IN BEDROCK as walking physics. Applied at ENTRY only: Abyss X/Z = Overworld X/Z / 16.
-// - Return rule (bug fix): leaving the Abyss ALWAYS teleports to the stored return point (dimension, x, y, z saved on
-//   entry). With no stored point the player goes to the Overworld default spawn. The teleport runs inside system.run
+// - Return rule: leaving the Abyss prefers a safe air pocket at Y=-50 in the Overworld near the saved X/Z entry point;
+//   if none exists, it returns to the exact saved entry point. With no stored point it uses the Overworld default spawn.
+//   The teleport runs inside system.run
 //   with a ticking area holding the destination chunk loaded, and logs before/after/20-ticks-later to the content log.
 // - Portal re-entry loop (probable cause of "stuck in the Abyss"): the stored return point is where the player touched
 //   the Overworld portal, i.e. INSIDE a portal block, so after the 3 second lock the contact scan sent them straight back.
@@ -22,8 +23,7 @@
 //   defines: if the skew comes from the geometry or transformation in blocks/abyssal_portal.json, that file must change.
 // - PHASE 9 fallback: right-click ANY minecraft:reinforced_deepslate block holding an Echo Shard. Sonic boom effect, a
 //   1.5 second frame charge, then the player enters the Abyss (Y=32, 16:1 mapping) or, when already in the Abyss,
-//   returns to the stored return point. One Echo Shard is consumed per use outside Creative (set ECHO_SHARD_COST to 0
-//   to make it free).
+//   returns to the stored return point. One Echo Shard is consumed only after transit succeeds (outside Creative).
 // - The return gate on the platform (3x4 portal inside a Reinforced Deepslate frame) is an engineering decision. Its
 //   portal blocks need meridian:abyssal_portal to be registered (Gemini Phase 6); if the block is missing the gate is
 //   left as an open frame and a warning is logged.
@@ -498,6 +498,61 @@ function consumeHeldItem(player, typeId, amount) {
   return true;
 }
 
+function isOnCompleteRitualFrame(dimension, location) {
+  const FRAME_SIDE = 30;
+  for (const axis of ["x", "z"]) {
+    const a = Math.floor(axis === "x" ? location.x : location.z);
+    const fixed = Math.floor(axis === "x" ? location.z : location.x);
+    const y = Math.floor(location.y);
+    for (let a0 = a - FRAME_SIDE + 1; a0 <= a; a0++) {
+      for (let y0 = y - FRAME_SIDE + 1; y0 <= y; y0++) {
+        const onPerimeter = a === a0 || a === a0 + FRAME_SIDE - 1 ||
+          y === y0 || y === y0 + FRAME_SIDE - 1;
+        if (!onPerimeter) {
+          continue;
+        }
+        let complete = true;
+        for (let i = 0; i < FRAME_SIDE && complete; i++) {
+          const low = axis === "x"
+            ? { x: a0 + i, y: y0, z: fixed }
+            : { x: fixed, y: y0, z: a0 + i };
+          const high = axis === "x"
+            ? { x: a0 + i, y: y0 + FRAME_SIDE - 1, z: fixed }
+            : { x: fixed, y: y0 + FRAME_SIDE - 1, z: a0 + i };
+          try {
+            if (dimension.getBlock(low)?.typeId !== FRAME_BLOCK_ID ||
+                dimension.getBlock(high)?.typeId !== FRAME_BLOCK_ID) {
+              complete = false;
+            }
+          } catch (error) {
+            complete = false;
+          }
+        }
+        for (let j = 0; j < FRAME_SIDE && complete; j++) {
+          const left = axis === "x"
+            ? { x: a0, y: y0 + j, z: fixed }
+            : { x: fixed, y: y0 + j, z: a0 };
+          const right = axis === "x"
+            ? { x: a0 + FRAME_SIDE - 1, y: y0 + j, z: fixed }
+            : { x: fixed, y: y0 + j, z: a0 + FRAME_SIDE - 1 };
+          try {
+            if (dimension.getBlock(left)?.typeId !== FRAME_BLOCK_ID ||
+                dimension.getBlock(right)?.typeId !== FRAME_BLOCK_ID) {
+              complete = false;
+            }
+          } catch (error) {
+            complete = false;
+          }
+        }
+        if (complete) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 function startEchoTransit(player, block) {
   if (echoCharging.has(player.id) || transitBusy.has(player.id)) {
     return;
@@ -562,6 +617,10 @@ export function initTransit() {
     });
     world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
       if (event.block.typeId !== FRAME_BLOCK_ID || event.itemStack?.typeId !== ECHO_SHARD_ID) {
+        return;
+      }
+      if (!isOnCompleteRitualFrame(event.block.dimension, event.block.location)) {
+        event.player.sendMessage("§c[Abyss] The Echo Shard only responds to a complete 30×30 Reinforced Deepslate gate.");
         return;
       }
       event.cancel = true;
