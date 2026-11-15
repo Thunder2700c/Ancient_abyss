@@ -32,7 +32,8 @@ const ELYTRA_ID = "minecraft:elytra";
 const ELYTRA_INTERVAL_TICKS = 4;
 const ELYTRA_DRAIN_PER_STEP = 12;
 const ELYTRA_MESSAGE_GAP_MS = 5000;
-const FIREWORK_ID = "minecraft:firework_rocket";
+const FIREWORK_ITEM_ID = "minecraft:firework_rocket";
+const FIREWORK_ENTITY_ID = "minecraft:fireworks_rocket";
 const FIREWORK_CLEAR_RADIUS = 4;
 
 const ARMOR_SET = [
@@ -147,14 +148,14 @@ export function initVoidTether() {
     system.runInterval(scanGliders, ELYTRA_INTERVAL_TICKS);
 
     world.beforeEvents.itemUse.subscribe((event) => {
-      if (event.itemStack.typeId === FIREWORK_ID && isInAbyss(event.source) && event.source.isGliding) {
+      if (event.itemStack.typeId === FIREWORK_ITEM_ID && isInAbyss(event.source) && event.source.isGliding) {
         event.cancel = true;
       }
     });
 
     world.afterEvents.entitySpawn.subscribe((event) => {
       const entity = event.entity;
-      if (entity.typeId !== FIREWORK_ID || entity.dimension.id !== "meridian:ancient_abyss") {
+      if (entity.typeId !== FIREWORK_ENTITY_ID || entity.dimension.id !== "meridian:ancient_abyss") {
         return;
       }
       const nearby = entity.dimension.getPlayers({ location: entity.location, maxDistance: FIREWORK_CLEAR_RADIUS });
