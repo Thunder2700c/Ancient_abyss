@@ -23,6 +23,7 @@ import "./resonance_cocoon.js";
 import "./resonance_ward.js";
 import "./void_lantern.js";
 import "./hollow_receptacle.js";
+import "./end_ship_injection.js";
 
 system.beforeEvents.startup.subscribe((event) => {
   registerTransitCommands(event.customCommandRegistry);
