@@ -58,3 +58,46 @@ Persistent project source register. Update it whenever a phase relies on new API
 - Inventory and equipment: Microsoft Container, EntityEquippableComponent, EquipmentSlot and ItemStack references.
 - Custom item/block definitions: Mojang Bedrock Schemas and vanilla samples.
 - Scripted enchantment pattern: Rob-Keys MC_Enchant_Mod and Justash01 Item Editor. These support script-driven effects, not native custom enchantment registration.
+
+## Phase 21 — custom-dimension world generation references
+
+### Official Microsoft / Mojang references
+1. Microsoft Learn — Dimension components
+   https://learn.microsoft.com/en-us/minecraft/creator/reference/content/dimensionreference/examples/dimensioncomponents/components?view=minecraft-bedrock-stable
+   Confirms custom dimensions currently allow only the `void` generator and configure one `minecraft:default_biome` for the dimension.
+2. Microsoft Learn — Dimension API
+   https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/dimension?view=minecraft-bedrock-stable
+   Reference for `Dimension.getBlock` and `Dimension.fillBlocks`, including unloaded-chunk/error behavior.
+3. Microsoft Learn — World API
+   https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/world?view=minecraft-bedrock-stable
+   Confirms `World.seed` is a read-only string and exposes `tickingAreaManager`.
+4. Microsoft Learn — TickingAreaManager API
+   https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/tickingareamanager?view=minecraft-bedrock-stable
+   Reference for temporary ticking areas, capacity checks, and cleanup.
+5. Microsoft Learn — Game loops and timed callbacks
+   https://learn.microsoft.com/en-us/minecraft/creator/documents/scripting/system-run-guide
+   Explains `system.runJob` and generator-based time slicing for long-running tasks.
+6. Microsoft Learn — Scripting performance
+   https://learn.microsoft.com/en-us/minecraft/creator/documents/scripting/script-performance?view=minecraft-bedrock-stable
+   Recommends granular work units and device-specific performance testing.
+7. Microsoft Learn — Vanilla block listings
+   https://learn.microsoft.com/en-us/minecraft/creator/reference/content/vanillalistingsreference/blocks?view=minecraft-bedrock-stable
+   Confirms the vanilla `minecraft:barrier` block identifier used as a hidden completion marker.
+
+### Community references (algorithmic guidance only)
+1. Bedrock-OSS Bedrock Wiki — Dimensions
+   https://wiki.bedrock.dev/world-generation/dimensions.html
+   Cross-check for void-only custom dimensions and the role of the default biome.
+2. Bedrock-OSS — World Generation Engine
+   https://github.com/theaddonn/WGE
+   Example of 16×16 chunk heightmaps, layered noise maps, biome selection, staged generation, and time-sliced jobs. This is an experimental community project; its README still lists biome implementation and performance work as TODO. It is not treated as a production-ready drop-in.
+3. FonnyFofo — Minecraft Bedrock Custom Dimensions
+   https://github.com/FonnyFofo/MinecraftBECustomDimensions
+   Community example of scripted, deterministic terrain inside custom dimensions; use as design reference only and cross-check every API against Microsoft Learn.
+
+### Phase 21 implementation rule
+- The Ancient Abyss custom dimension remains a void-generator dimension with one default biome.
+- Hadal Trenches, Hydrothermal Fissures, and Inverted Necropolis are scripted vertical strata, not three native engine biome IDs.
+- Generate deterministically from the world seed, in small chunk-sized jobs, and keep a persistent completion marker that is written only after generation succeeds.
+- Do not overwrite legacy generated chunks automatically; existing builds must be preserved. Evaluate the improved generator in a fresh test world.
+- Static code/JSON verification is not a substitute for in-game testing on the supported retail Bedrock client with Beta APIs enabled.
