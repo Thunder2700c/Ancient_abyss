@@ -23,7 +23,7 @@
 //    laying an opaque ceiling layer at Y=319 (like the Nether roof). requestSkySeal() builds it lazily, one
 //    64x64 cell (+16 block margin so light cannot leak in sideways) at a time, around every player in the Abyss.
 //    Only cells near players are sealed; unvisited areas are still lit by the sky.
-//    Phase 21 replaces SKY_SEAL_BLOCK with the Petrified Gloom-Roots ceiling (air-only fill never overwrites it).
+//    Phase 21 builds a layered, undulating ceiling inside generated chunks (Gloom-Roots underneath, Fractured Slate above).\n//    This separate deepslate sky-seal only closes remaining air gaps at Y=319; its air-only filter does not overwrite terrain.
 //
 // 4. Ambient light floor 0.08: NOT POSSIBLE IN BEDROCK. Reason: ambient/minimum brightness is a client-side
 //    rendering setting with no scripting or dimension component. Workaround: none needed; the dimension stays
