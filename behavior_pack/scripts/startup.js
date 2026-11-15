@@ -12,6 +12,8 @@ import { initStrata } from "./strata.js";
 import { initFog } from "./fog.js";
 import { initEchoDweller, registerDwellerCommands } from "./echo_dweller.js";
 import "./trade_handler.js";
+import "./harmonic_pylon.js";
+import { initPaddedTreads } from "./padded_treads.js";
 
 // These modules register block/item event handlers or scheduled gameplay systems on import.
 import "./abyssal_silt.js";
@@ -37,3 +39,4 @@ initAbyssalite();
 initStrata();
 initFog();
 initEchoDweller();
+initPaddedTreads();
