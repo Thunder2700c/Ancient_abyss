@@ -1,0 +1,31 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "meridian:gloomstone"
+    },
+    "tags": [
+      "crafting_table"
+    ],
+    "pattern": [
+      "CSC",
+      "SES",
+      "CSC"
+    ],
+    "key": {
+      "C": {
+        "item": "minecraft:crying_obsidian"
+      },
+      "S": {
+        "item": "minecraft:sculk"
+      },
+      "E": {
+        "item": "minecraft:echo_shard"
+      }
+    },
+    "result": {
+      "item": "meridian:gloomstone",
+      "count": 4
+    }
+  }
+}
