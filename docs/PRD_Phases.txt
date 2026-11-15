@@ -32,13 +32,20 @@ PHASE 2 — Resource pack assets
 - List every texture filename required (placeholders OK, name them)
 
 PHASE 3 — Dimension registration
-- behavior_pack/scripts/startup.js
-- system.beforeEvents.startup → event.dimensionRegistry.registerCustomDimension
-  ("meridian:ancient_abyss")
-- Bounds Y=-64 to Y=320
-- Fixed time 18000, ambient light floor 0.08, no natural skylight
-- Coordinate scale 16:1 — if not supported in API, print NOT POSSIBLE + workaround
-- Water does not evaporate — flag if unsupported
+- Declare meridian:ancient_abyss once in behavior_pack/dimensions/ancient_abyss.json.
+- Use minecraft:generation generator_type "void", minecraft:dimension_height
+  min_y -64 / height_range 384 (Y=-64 through Y=319; top boundary is 320),
+  and minecraft:default_biome meridian:ancient_abyss_biome.
+- Do NOT also call event.dimensionRegistry.registerCustomDimension for this same ID:
+  JSON definition takes precedence and duplicate script registration creates a warning.
+- behavior_pack/scripts/startup.js initializes dimension environment and gameplay systems;
+  behavior_pack/scripts/dimension.js resolves the JSON-defined dimension.
+- Fixed time 18000, ambient light floor 0.08, native zero-skylight control,
+  true 16:1 walking scale, and non-evaporating water are not exposed as per-dimension
+  controls in the supported Bedrock implementation. Document the closest honest
+  workaround; do not claim these are native features.
+- Coordinate compression may be applied only at scripted transit boundaries.
+- Water behavior remains engine-default; explicitly document this limitation.
 
 PHASE 4 — Transit + safe landing
 - Script: on player entry → generate safe landing platform at Y=32
