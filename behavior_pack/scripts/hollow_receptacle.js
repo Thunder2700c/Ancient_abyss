@@ -9,6 +9,8 @@ world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   if (block.typeId !== "meridian:hollow_receptacle") return;
 
   event.cancel = true;
+  // The replacement interaction event can repeat while the button is held.
+  if (!event.isFirstEvent) return;
 
   if (!itemStack || itemStack.typeId !== "meridian:heart_of_herobrine") {
     system.run(() => {
