@@ -6,6 +6,13 @@
       "menu_category": {
         "category": "construction",
         "group": "meridian:itemGroup.name.abyss_blocks"
+      },
+      "traits": {
+        "minecraft:placement_position": {
+          "enabled_states": [
+            "minecraft:vertical_half"
+          ]
+        }
       }
     },
     "components": {
@@ -46,6 +53,20 @@
           "render_method": "opaque"
         }
       }
-    }
+    },
+    "permutations": [
+      {
+        "condition": "q.block_state('minecraft:vertical_half') == 'top'",
+        "components": {
+          "minecraft:transformation": {
+            "translation": [
+              0,
+              0.5,
+              0
+            ]
+          }
+        }
+      }
+    ]
   }
 }
