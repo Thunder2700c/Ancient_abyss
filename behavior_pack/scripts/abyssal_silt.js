@@ -1,5 +1,5 @@
-// NOT POSSIBLE IN BEDROCK: Custom block JSON cannot natively evaluate equipped armor enchantments (Depth Strider) or cancel vanilla vibration propagation.
-// Closest workaround: Server tick loop monitors players on meridian:abyssal_silt, applies Slowness II if lacking Depth Strider or Abyssalite boots, and suppresses vibrations by clearing shrieker detection states.
+// NOT POSSIBLE IN BEDROCK: Script API does not expose a supported way to cancel vanilla vibration propagation from a custom block.
+// Closest honest implementation: monitor players standing on silt and apply Slowness II unless their boots provide Depth Strider or are Abyssalite. Vibration dampening is not implemented.
 
 import { world, system, EquipmentSlot } from "@minecraft/server";
 
@@ -42,15 +42,5 @@ system.runInterval(() => {
       });
     }
 
-    if (dim.id === "meridian:ancient_abyss") {
-      const nearbyShriekers = dim.getEntities({
-        location: loc,
-        maxDistance: 8,
-        type: "minecraft:warden"
-      });
-      for (const warden of nearbyShriekers) {
-        warden.clearVelocity();
-      }
-    }
   }
 }, 4);
