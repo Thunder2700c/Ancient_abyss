@@ -482,7 +482,7 @@ function heldItemAvailable(player, typeId, amount) {
   return !!item && item.typeId === typeId && item.amount >= amount;
 }
 
-function consumeHeldItem(player, typeId, amount) {
+function consumeHeldItem(player, typeId, amount, slotIndex) {
   if (amount <= 0 || player.matches({ gameMode: GameMode.Creative })) {
     return true;
   }
@@ -490,7 +490,7 @@ function consumeHeldItem(player, typeId, amount) {
   if (!container) {
     return false;
   }
-  const slot = player.selectedSlotIndex;
+  const slot = Number.isInteger(slotIndex) ? slotIndex : player.selectedSlotIndex;
   const item = container.getItem(slot);
   if (!item || item.typeId !== typeId || item.amount < amount) {
     return false;
@@ -566,6 +566,7 @@ function startEchoTransit(player, block) {
   if (!heldItemAvailable(player, ECHO_SHARD_ID, ECHO_SHARD_COST)) {
     return;
   }
+  const shardSlot = player.selectedSlotIndex;
   echoCharging.add(player.id);
 
   const dimension = block.dimension;
@@ -594,8 +595,8 @@ function startEchoTransit(player, block) {
       if (succeeded) {
         // Consume only after the transit routine reports success. If the player
         // changes their selected slot during the charge, leave the shard intact.
-        if (!consumeHeldItem(player, ECHO_SHARD_ID, ECHO_SHARD_COST)) {
-          player.sendMessage("§e[Abyss] Transit succeeded, but the Echo Shard was not consumed because it is no longer in your selected slot.");
+        if (!consumeHeldItem(player, ECHO_SHARD_ID, ECHO_SHARD_COST, shardSlot)) {
+          player.sendMessage("§e[Abyss] Transit succeeded, but the Echo Shard was not consumed because it is no longer in its original inventory slot.");
         }
       } else {
         player.sendMessage("§c[Abyss] Transit failed. Your Echo Shard was not consumed.");
