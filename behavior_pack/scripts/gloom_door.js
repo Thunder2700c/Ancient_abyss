@@ -4,7 +4,6 @@ import { world, system } from "@minecraft/server";
 
 const DOOR_ID = "meridian:gloom_door";
 const OPEN_STATE = "meridian:door_open";
-const PART_STATE = "minecraft:multi_block_part";
 
 world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   if (event.block.typeId !== DOOR_ID) return;
