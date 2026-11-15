@@ -26,6 +26,7 @@ const TILES_PER_CHUNK = 16 / TILE_SIZE;
 const SCAN_RADIUS_CHUNKS = 1;
 const SCAN_INTERVAL_TICKS = 100;
 const MAX_PENDING_CHUNKS = 64;
+const MAX_KNOWN_CHUNKS = 2048;
 const MAX_FAILURES_BEFORE_BACKOFF = 5;
 const LEGACY_MARKER = "minecraft:bedrock";
 const V2_MARKER = "minecraft:barrier";
@@ -408,6 +409,15 @@ function getChunkKey(chunkX, chunkZ) {
   return chunkX + "," + chunkZ;
 }
 
+function rememberChunk(key) {
+  knownChunks.delete(key);
+  knownChunks.add(key);
+  if (knownChunks.size > MAX_KNOWN_CHUNKS) {
+    const oldest = knownChunks.values().next().value;
+    if (oldest !== undefined) knownChunks.delete(oldest);
+  }
+}
+
 async function processChunk(dimension, job) {
   const originX = job.chunkX * 16;
   const originZ = job.chunkZ * 16;
@@ -432,7 +442,7 @@ async function processChunk(dimension, job) {
 
     const completeMarker = dimension.getBlock(markerV2);
     if (completeMarker?.typeId === V2_MARKER) {
-      knownChunks.add(job.key);
+      rememberChunk(job.key);
       failures.delete(job.key);
       retryAt.delete(job.key);
       return;
@@ -441,7 +451,7 @@ async function processChunk(dimension, job) {
     // Preserve V1 terrain and player builds. Legacy chunks are not destructively migrated.
     const legacyMarker = dimension.getBlock(markerLegacy);
     if (legacyMarker?.typeId === LEGACY_MARKER) {
-      knownChunks.add(job.key);
+      rememberChunk(job.key);
       failures.delete(job.key);
       retryAt.delete(job.key);
       return;
@@ -451,7 +461,7 @@ async function processChunk(dimension, job) {
       system.runJob(generateChunkJob(dimension, job.chunkX, job.chunkZ, resolve));
     });
     if (!success) throw new Error("Generator job did not complete for " + job.key);
-    knownChunks.add(job.key);
+    rememberChunk(job.key);
     failures.delete(job.key);
     retryAt.delete(job.key);
   } catch (error) {
