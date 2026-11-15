@@ -4,11 +4,17 @@
     "animation.echo_dweller.walk": {
       "loop": true,
       "bones": {
-        "leg0": {
-          "rotation": ["math.cos(query.modified_distance_moved * 38.17) * 70", 0, 0]
+        "right_leg": {
+          "rotation": ["math.cos(query.modified_distance_moved * 38.17) * 32", 0, 0]
         },
-        "leg1": {
-          "rotation": ["math.cos(query.modified_distance_moved * 38.17 + 3.141593) * 70", 0, 0]
+        "left_leg": {
+          "rotation": ["math.cos(query.modified_distance_moved * 38.17 + 3.141593) * 32", 0, 0]
+        },
+        "right_arm": {
+          "rotation": ["math.cos(query.modified_distance_moved * 38.17 + 3.141593) * 18", 0, 0]
+        },
+        "left_arm": {
+          "rotation": ["math.cos(query.modified_distance_moved * 38.17) * 18", 0, 0]
         }
       }
     },
