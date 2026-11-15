@@ -315,12 +315,18 @@ export async function leaveAbyss(player) {
       destinationDimension = world.getDimension(stored.d);
       destination = { x: stored.x, y: stored.y, z: stored.z };
       if (stored.d === OVERWORLD_ID) {
-        const ancientCitySpot = findAncientCityReturnSpot(destinationDimension, stored.x, stored.z);
-        if (ancientCitySpot) {
-          destination = ancientCitySpot;
-          console.warn("[meridian] leaveAbyss: safe Y=-50 Overworld return spot found near the saved entry coordinates (" + fmt(destination) + ").");
-        } else {
-          console.warn("[meridian] leaveAbyss: no safe Y=-50 air pocket nearby; preserving the exact saved entry point instead.");
+        try {
+          const ancientCitySpot = await withLoadedArea(destinationDimension, stored.x, stored.z, async () =>
+            findAncientCityReturnSpot(destinationDimension, stored.x, stored.z)
+          );
+          if (ancientCitySpot) {
+            destination = ancientCitySpot;
+            console.warn("[meridian] leaveAbyss: safe Y=-50 Overworld return spot found near the saved entry coordinates (" + fmt(destination) + ").");
+          } else {
+            console.warn("[meridian] leaveAbyss: no safe Y=-50 air pocket nearby; preserving the exact saved entry point instead.");
+          }
+        } catch (searchError) {
+          console.warn("[meridian] leaveAbyss: Y=-50 return search failed; preserving the exact saved entry point: " + searchError);
         }
       }
       console.warn("[meridian] leaveAbyss: stored return point found: " + stored.d + " (" + fmt(destination) + ")");
