@@ -19,6 +19,7 @@ import { initPaddedTreads } from "./padded_treads.js";
 import "./abyssal_silt.js";
 import "./sulfuric_basalt.js";
 import "./gloomstone.js";
+import "./gloom_door.js";
 import "./resonance_cocoon.js";
 import "./resonance_ward.js";
 import "./void_lantern.js";

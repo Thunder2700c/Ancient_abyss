@@ -4,8 +4,8 @@
     {
       "description": {
         "identifier": "geometry.gloom_door",
-        "texture_width": 32,
-        "texture_height": 32,
+        "texture_width": 64,
+        "texture_height": 64,
         "visible_bounds_width": 2,
         "visible_bounds_height": 3,
         "visible_bounds_offset": [0, 1, 0]
@@ -19,12 +19,12 @@
               "origin": [-8, 0, -8],
               "size": [16, 16, 2],
               "uv": {
-                "north": { "uv": [0, 16], "uv_size": [16, 16] },
-                "south": { "uv": [0, 16], "uv_size": [16, 16] },
-                "east": { "uv": [0, 16], "uv_size": [2, 16] },
-                "west": { "uv": [0, 16], "uv_size": [2, 16] },
-                "up": { "uv": [0, 16], "uv_size": [16, 2] },
-                "down": { "uv": [0, 16], "uv_size": [16, 2] }
+                "north": {"uv": [0, 0], "uv_size": [64, 64]},
+                "south": {"uv": [0, 0], "uv_size": [64, 64]},
+                "east": {"uv": [0, 0], "uv_size": [8, 64]},
+                "west": {"uv": [56, 0], "uv_size": [8, 64]},
+                "up": {"uv": [0, 0], "uv_size": [64, 8]},
+                "down": {"uv": [0, 56], "uv_size": [64, 8]}
               }
             }
           ]
