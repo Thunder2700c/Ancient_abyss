@@ -6,7 +6,7 @@
 //   amethyst cluster on top of the pedestal and recorded in a world dynamic property (validated again at ignition).
 // - Place a minecraft:dragon_egg on top of meridian:sculk_altar (or right-click the altar/egg, or slot the last core).
 // - Ignition needs: egg on the altar, 4 slotted pedestals within 12 blocks of the altar, and a Reinforced Deepslate
-//   gate within 30 blocks: ANY complete rectangular ring of Reinforced Deepslate (outer size 5 to 40 blocks per side,
+//   gate within 40 blocks: ANY complete rectangular ring of Reinforced Deepslate (outer size 5 to 40 blocks per side,
 //   corners included) whose opening is empty (air, sculk vein or portal). Both X and Z orientations are searched, extra
 //   Reinforced Deepslate touching the ring is ignored. The opening that gets filled is whatever size the ring has.
 //   The search is time-sliced with system.runJob.
@@ -43,13 +43,13 @@ const EGG_ID = "minecraft:dragon_egg";
 const FRAME_ID = "minecraft:reinforced_deepslate";
 const PORTAL_ID = "meridian:abyssal_portal";
 
-const FRAME_MIN_SIDE = 30;
-const FRAME_MAX_SIDE = 30;
+const FRAME_MIN_SIDE = 5;
+const FRAME_MAX_SIDE = 40;
 const PEDESTALS_REQUIRED = 4;
 const PEDESTAL_RADIUS = 12;
 const PEDESTAL_VERTICAL = 6;
-const FRAME_SEARCH_XZ = 30;
-const FRAME_SEARCH_Y = 24;
+const FRAME_SEARCH_XZ = 40;
+const FRAME_SEARCH_Y = 40;
 const EFFECT_RADIUS = 32;
 const BEAM_TICKS = 60;
 const DARKNESS_TICKS = 100;
