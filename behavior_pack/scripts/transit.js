@@ -550,7 +550,28 @@ function isOnCompleteRitualFrame(dimension, location) {
           }
         }
         if (complete) {
-          return true;
+          let interiorClear = true;
+          for (let innerA = 1; innerA < FRAME_SIDE - 1 && interiorClear; innerA++) {
+            for (let innerY = 1; innerY < FRAME_SIDE - 1; innerY++) {
+              const interior = axis === "x"
+                ? { x: a0 + innerA, y: y0 + innerY, z: fixed }
+                : { x: fixed, y: y0 + innerY, z: a0 + innerA };
+              try {
+                const block = dimension.getBlock(interior);
+                if (!block || (!block.isAir && block.typeId !== PORTAL_BLOCK_ID &&
+                    block.typeId !== "minecraft:sculk_vein")) {
+                  interiorClear = false;
+                  break;
+                }
+              } catch (error) {
+                interiorClear = false;
+                break;
+              }
+            }
+          }
+          if (interiorClear) {
+            return true;
+          }
         }
       }
     }
