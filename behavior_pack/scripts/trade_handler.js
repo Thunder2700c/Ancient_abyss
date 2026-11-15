@@ -1,11 +1,8 @@
 // behavior_pack/scripts/trade_handler.js
-// PHASE 23 - Harmonic barter UI and inventory-safe tier trades.
-//
-// Padded Treads limitation:
-// Bedrock does not expose a supported custom-enchantment registration API that can
-// create the PRD's bespoke "total acoustic silence" enchantment. Tier 1 therefore
-// awards named leather boots as a wearable placeholder. They do NOT silence footsteps
-// or suppress sculk vibrations. Do not describe this reward as the finished enchantment.
+// PHASE 23 — Harmonic Barter.
+// Uses the documented @minecraft/server-ui ActionFormData API.
+// Item costs are rechecked when a choice is confirmed; inventory changes are
+// rolled back from a slot snapshot if the reward cannot be inserted.
 
 import { EntityComponentTypes, GameMode, ItemStack } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
@@ -15,45 +12,57 @@ import {
   chime,
 } from "./echo_dweller.js";
 
+const ANY_WOOL = "minecraft:__any_wool__";
+
 const TIERS = [
   {
-    trust: 0,
-    title: "Padded Treads",
-    description: "4 Amethyst Shards + 2 Wool",
+    title: "Padded Treads — prototype",
+    buttonTitle: "Tier I — Padded Treads",
+    description: "4 Amethyst Shards + 2 Wool (any colour)",
     costs: [
-      { id: "minecraft:amethyst_shard", amount: 4 },
-      { id: "minecraft:__any_wool__", amount: 2 },
+      { id: "minecraft:amethyst_shard", amount: 4, label: "Amethyst Shards" },
+      { id: ANY_WOOL, amount: 2, label: "Wool (any colour)" },
     ],
-    reward: () => {
+    createReward: () => {
       const boots = new ItemStack("minecraft:leather_boots", 1);
-      boots.nameTag = "Padded Treads";
+      boots.nameTag = "Padded Treads — Prototype";
+      boots.setLore([
+        "Prototype barter reward.",
+        "No footstep or sculk-vibration silence.",
+      ]);
       return boots;
     },
+    limitation: "Prototype boots only; acoustic silence is not implemented.",
   },
   {
-    trust: 10,
     title: "Abyssal Anchor",
+    buttonTitle: "Tier II — Abyssal Anchor",
     description: "1 Calibrated Sculk Sensor + 4 Echo Shards",
     costs: [
-      { id: "minecraft:calibrated_sculk_sensor", amount: 1 },
-      { id: "minecraft:echo_shard", amount: 4 },
+      { id: "minecraft:calibrated_sculk_sensor", amount: 1, label: "Calibrated Sculk Sensor" },
+      { id: "minecraft:echo_shard", amount: 4, label: "Echo Shards" },
     ],
-    reward: () => new ItemStack("meridian:abyssal_anchor", 1),
+    createReward: () => new ItemStack("meridian:abyssal_anchor", 1),
   },
   {
-    trust: 25,
     title: "Abyss Upgrade Smithing Template",
+    buttonTitle: "Tier III — Abyss Upgrade Template",
     description: "1 Resonant Core + 16 Crying Obsidian",
     costs: [
-      { id: "meridian:resonant_core", amount: 1 },
-      { id: "minecraft:crying_obsidian", amount: 16 },
+      { id: "meridian:resonant_core", amount: 1, label: "Resonant Core" },
+      { id: "minecraft:crying_obsidian", amount: 16, label: "Crying Obsidian" },
     ],
-    reward: () => new ItemStack("meridian:abyss_upgrade_smithing_template", 1),
+    createReward: () => new ItemStack("meridian:abyss_upgrade_smithing_template", 1),
   },
 ];
 
+function getInventory(player) {
+  const inventory = player.getComponent(EntityComponentTypes.Inventory);
+  return inventory?.container;
+}
+
 function isCreative(player) {
-  return player.matches({ gameMode: GameMode.Creative });
+  return player.getGameMode() === GameMode.Creative;
 }
 
 function isWool(typeId) {
@@ -61,11 +70,7 @@ function isWool(typeId) {
 }
 
 function matchesCost(typeId, costId) {
-  return costId === "minecraft:__any_wool__" ? isWool(typeId) : typeId === costId;
-}
-
-function getInventory(player) {
-  return player.getComponent(EntityComponentTypes.Inventory)?.container;
+  return costId === ANY_WOOL ? isWool(typeId) : typeId === costId;
 }
 
 function countCost(container, cost) {
@@ -79,57 +84,81 @@ function countCost(container, cost) {
   return total;
 }
 
-function hasCosts(container, costs) {
-  return costs.every((cost) => countCost(container, cost) >= cost.amount);
-}
-
-function removeCosts(container, costs) {
-  const removed = [];
+function getMissingCosts(container, costs) {
+  const missing = [];
   for (const cost of costs) {
-    let remaining = cost.amount;
-    for (let slot = 0; slot < container.size && remaining > 0; slot++) {
-      const stack = container.getItem(slot);
-      if (!stack || !matchesCost(stack.typeId, cost.id)) {
-        continue;
-      }
-      const take = Math.min(stack.amount, remaining);
-      removed.push({ typeId: stack.typeId, amount: take });
-      remaining -= take;
-      if (take === stack.amount) {
-        container.setItem(slot, undefined);
-      } else {
-        stack.amount -= take;
-        container.setItem(slot, stack);
-      }
-    }
-    if (remaining > 0) {
-      return undefined;
+    const missingAmount = cost.amount - countCost(container, cost);
+    if (missingAmount > 0) {
+      missing.push(missingAmount + " " + cost.label);
     }
   }
-  return removed;
+  return missing;
 }
 
-function refundCosts(container, removed) {
-  for (const entry of removed) {
-    const remainder = container.addItem(new ItemStack(entry.typeId, entry.amount));
-    if (remainder) {
-      console.warn("[Ancient Abyss] Could not fully refund a failed barter transaction.");
-    }
-  }
-}
-
-function hasEmptySlot(container) {
+function snapshotInventory(container) {
+  const snapshot = [];
   for (let slot = 0; slot < container.size; slot++) {
-    if (!container.getItem(slot)) {
-      return true;
-    }
+    const stack = container.getItem(slot);
+    snapshot.push(stack ? stack.clone() : undefined);
   }
-  return false;
+  return snapshot;
+}
+
+function restoreInventory(container, snapshot) {
+  for (let slot = 0; slot < snapshot.length; slot++) {
+    container.setItem(slot, snapshot[slot]);
+  }
+}
+
+// Returns the pre-transaction inventory snapshot on success, or undefined
+// when the player does not have enough materials. Any partial removal is
+// restored before returning or rethrowing.
+function consumeCosts(container, costs) {
+  const snapshot = snapshotInventory(container);
+
+  try {
+    for (const cost of costs) {
+      let remaining = cost.amount;
+
+      for (let slot = 0; slot < container.size && remaining > 0; slot++) {
+        const stack = container.getItem(slot);
+        if (!stack || !matchesCost(stack.typeId, cost.id)) {
+          continue;
+        }
+
+        const take = Math.min(stack.amount, remaining);
+        remaining -= take;
+
+        if (take === stack.amount) {
+          container.setItem(slot, undefined);
+        } else {
+          const updated = stack.clone();
+          updated.amount -= take;
+          container.setItem(slot, updated);
+        }
+      }
+
+      if (remaining > 0) {
+        restoreInventory(container, snapshot);
+        return undefined;
+      }
+    }
+
+    return snapshot;
+  } catch (error) {
+    try {
+      restoreInventory(container, snapshot);
+    } catch (restoreError) {
+      console.error("[Ancient Abyss] Inventory rollback failed: " + restoreError);
+    }
+    throw error;
+  }
 }
 
 function showTradeResult(player, message, success) {
+  const prefix = success ? "§b[Harmonic Barter]§r " : "§c[Harmonic Barter]§r ";
   try {
-    player.sendMessage((success ? "§b[Harmonic Barter]§r " : "§c[Harmonic Barter]§r ") + message);
+    player.sendMessage(prefix + message);
   } catch (error) {
     console.warn("[Ancient Abyss] Could not send barter result: " + error);
   }
@@ -141,88 +170,119 @@ function executeTrade(player, tierIndex) {
     return;
   }
 
-  if (getTrust(player) < tier.trust) {
-    showTradeResult(player, "Your trust is too low for this tier. Required trust: " + tier.trust + ".", false);
-    return;
-  }
-
   const container = getInventory(player);
   if (!container) {
     showTradeResult(player, "Your inventory is unavailable.", false);
     return;
   }
 
-  if (!hasCosts(container, tier.costs)) {
-    showTradeResult(player, "You do not have the required materials: " + tier.description + ".", false);
+  const creative = isCreative(player);
+  const missing = creative ? [] : getMissingCosts(container, tier.costs);
+  if (missing.length > 0) {
+    showTradeResult(player, "Missing: " + missing.join(", ") + ".", false);
     return;
   }
 
-  // Reserve a destination before consuming anything. This avoids losing ingredients
-  // when the player's inventory is completely full.
-  if (!hasEmptySlot(container)) {
-    showTradeResult(player, "Free at least one inventory slot before trading.", false);
+  // Construct the reward before consuming anything so invalid item identifiers
+  // or item-stack errors cannot consume the player's materials.
+  let reward;
+  try {
+    reward = tier.createReward();
+  } catch (error) {
+    console.error("[Ancient Abyss] Could not construct barter reward: " + error);
+    showTradeResult(player, "This reward could not be created. No materials were consumed.", false);
     return;
   }
 
-  let removed = [];
-  if (!isCreative(player)) {
-    removed = removeCosts(container, tier.costs);
-    if (!removed) {
-      showTradeResult(player, "The trade could not be completed; no materials were consumed.", false);
+  let snapshot;
+  if (!creative) {
+    try {
+      snapshot = consumeCosts(container, tier.costs);
+    } catch (error) {
+      console.error("[Ancient Abyss] Could not reserve barter materials: " + error);
+      showTradeResult(player, "The trade could not reserve your materials. No trade was completed.", false);
+      return;
+    }
+
+    if (!snapshot) {
+      showTradeResult(player, "Your inventory changed before the trade completed. No materials were consumed.", false);
       return;
     }
   }
 
-  let reward;
   try {
-    reward = tier.reward();
     const remainder = container.addItem(reward);
     if (remainder) {
-      if (!isCreative(player)) {
-        refundCosts(container, removed);
+      if (snapshot) {
+        restoreInventory(container, snapshot);
       }
-      showTradeResult(player, "There was no room for the reward. Your materials were returned where possible.", false);
+      showTradeResult(player, "There is no room for the reward. Your original inventory was restored.", false);
       return;
     }
   } catch (error) {
-    if (!isCreative(player) && removed.length > 0) {
-      refundCosts(container, removed);
+    if (snapshot) {
+      try {
+        restoreInventory(container, snapshot);
+      } catch (restoreError) {
+        console.error("[Ancient Abyss] Inventory rollback failed after reward insertion error: " + restoreError);
+      }
     }
-    console.warn("[Ancient Abyss] Barter transaction failed: " + error);
-    showTradeResult(player, "The barter failed. Check the content log.", false);
+    console.error("[Ancient Abyss] Barter reward insertion failed: " + error);
+    showTradeResult(player, "The trade failed. Your original inventory was restored where possible.", false);
     return;
   }
 
-  chime(player.dimension, player.location, 1.5);
+  try {
+    chime(player.dimension, player.location, 1.5);
+  } catch (error) {
+    console.warn("[Ancient Abyss] Barter completed, but its chime failed: " + error);
+  }
   showTradeResult(player, "Trade complete: " + tier.title + ".", true);
+
+  if (tier.limitation) {
+    showTradeResult(player, tier.limitation, false);
+  }
 }
 
 function openTradeMenu(player) {
+  const container = getInventory(player);
+  const creative = isCreative(player);
   const trust = getTrust(player);
+
   const form = new ActionFormData()
     .title("§bHarmonic Barter")
     .body(
-      "§7The Echo Dweller's trust: §b" + trust + "§7 / 100\n" +
-      "§8Tier II requires 10 trust. Tier III requires 25 trust.\n" +
-      "§7Tier I Padded Treads are currently a named leather-boots placeholder; they do not silence footsteps."
-    )
-    .button("Tier I — Padded Treads\n4 Amethyst Shards + 2 Wool")
-    .button("Tier II — Abyssal Anchor\n1 Calibrated Sculk Sensor + 4 Echo Shards")
-    .button("Tier III — Abyss Upgrade Template\n1 Resonant Core + 16 Crying Obsidian");
+      "§7Echo Dweller trust: §b" + trust + "§7 / 100\n" +
+      "§8Trust is tracked separately. The phase specification does not define barter unlock thresholds.\n" +
+      "§7Tier I is a prototype reward; it does not silence footsteps or sculk vibrations."
+    );
 
-  form.show(player).then((response) => {
-    if (response.canceled || response.selection === undefined) {
-      return;
+  for (const tier of TIERS) {
+    let status = "§cInventory unavailable";
+    if (creative) {
+      status = "§aCreative — materials not consumed";
+    } else if (container) {
+      const missing = getMissingCosts(container, tier.costs);
+      status = missing.length === 0 ? "§aReady" : "§cMissing " + missing.join(", ");
     }
-    executeTrade(player, response.selection);
-  }).catch((error) => {
-    console.warn("[Ancient Abyss] Could not open harmonic barter UI: " + error);
-    showTradeResult(player, "The trade screen could not open. Close other forms and try again.", false);
-  });
+    form.button(tier.buttonTitle + "\n§7" + tier.description + "\n" + status);
+  }
+
+  form.show(player)
+    .then((response) => {
+      if (response.canceled || response.selection === undefined) {
+        return;
+      }
+      executeTrade(player, response.selection);
+    })
+    .catch((error) => {
+      console.warn("[Ancient Abyss] Could not open harmonic barter UI: " + error);
+      showTradeResult(player, "The trade screen could not open. Close other forms and try again.", false);
+    });
 }
 
-// Normal interaction with a donation item still donates it for trust.
-// Sneak-interaction opens the trade screen even when holding wool or shards.
+// Normal interaction while holding a donation item is handled by Phase 22.
+// Sneak-interaction opens the trade menu even when holding wool or shards.
 registerDwellerInteractHandler((player, dweller, item) => {
   const isDonation =
     item?.typeId === "minecraft:amethyst_shard" ||
