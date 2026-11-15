@@ -66,6 +66,7 @@ const RETURN_PROPERTY = "meridian:return_point";
 const transitLocks = new Map();
 const transitBusy = new Set();
 const needsPortalExit = new Set();
+const portalParticleTicks = new Map();
 const builtPlatforms = new Set();
 let platformsLoaded = false;
 let areaCounter = 0;
@@ -333,6 +334,22 @@ function scanPortalContact() {
       const head = player.dimension.getBlock({ x: bx, y: by + 1, z: bz });
       const inside = feet?.typeId === PORTAL_BLOCK_ID || head?.typeId === PORTAL_BLOCK_ID;
 
+      // The portal is a no-collision block, so its visual emitter is triggered by
+      // the same contact poll used for transit. Throttle per player to avoid
+      // spawning particles on every 5-tick scan.
+      if (inside && tick - (portalParticleTicks.get(player.id) ?? -20) >= 20) {
+        try {
+          player.dimension.spawnParticle("meridian:abyssal_portal_particle", {
+            x: p.x,
+            y: p.y + 0.8,
+            z: p.z
+          });
+          portalParticleTicks.set(player.id, tick);
+        } catch (particleError) {
+          console.warn("[meridian] Portal particle could not be spawned: " + particleError);
+        }
+      }
+
       if (needsPortalExit.has(player.id)) {
         if (!inside) {
           needsPortalExit.delete(player.id);
@@ -475,6 +492,7 @@ export function initTransit() {
       transitBusy.delete(event.playerId);
       needsPortalExit.delete(event.playerId);
       echoCharging.delete(event.playerId);
+      portalParticleTicks.delete(event.playerId);
     });
     world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
       if (event.block.typeId !== FRAME_BLOCK_ID || event.itemStack?.typeId !== ECHO_SHARD_ID) {
