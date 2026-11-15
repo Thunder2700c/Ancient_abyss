@@ -209,12 +209,20 @@ function cellKey(a, y) {
 }
 
 function ringComplete(plane, a0, y0, width, height) {
+  // Validate all four sides. Checking only the top and right edges allowed
+  // incomplete L-shaped frames to pass as a complete ritual gate.
   for (let i = 0; i < width; i++) {
+    if (!plane.has(cellKey(a0 + i, y0))) {
+      return false;
+    }
     if (!plane.has(cellKey(a0 + i, y0 + height - 1))) {
       return false;
     }
   }
   for (let j = 0; j < height; j++) {
+    if (!plane.has(cellKey(a0, y0 + j))) {
+      return false;
+    }
     if (!plane.has(cellKey(a0 + width - 1, y0 + j))) {
       return false;
     }
