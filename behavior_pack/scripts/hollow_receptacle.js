@@ -3,7 +3,7 @@
 
 import { world, system, EquipmentSlot } from "@minecraft/server";
 
-world.beforeEvents.itemUseOn.subscribe((event) => {
+world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   const { block, player, itemStack } = event;
 
   if (block.typeId !== "meridian:hollow_receptacle") return;
