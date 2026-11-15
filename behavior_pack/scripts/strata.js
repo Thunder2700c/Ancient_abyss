@@ -31,7 +31,7 @@ const MAX_FAILURES_BEFORE_BACKOFF = 5;
 const LEGACY_MARKER = "minecraft:bedrock";
 const V2_MARKER = "minecraft:barrier";
 const LEGACY_MARKER_OFFSET = { x: 0, y: -64, z: 0 };
-const V2_MARKER_OFFSET = { x: 15, y: -63, z: 15 };
+const V2_MARKER_OFFSET = { x: 15, y: -64, z: 15 };
 
 const BLOCK_FALLBACKS = {
   "meridian:raw_abyssal_silt_ore": "meridian:abyssal_silt",
