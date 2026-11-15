@@ -421,6 +421,18 @@ const ECHO_CHARGE_TICKS = 30;
 const ECHO_SHARD_COST = 1;
 const echoCharging = new Set();
 
+function heldItemAvailable(player, typeId, amount) {
+  if (amount <= 0 || player.matches({ gameMode: GameMode.Creative })) {
+    return true;
+  }
+  const container = player.getComponent(EntityComponentTypes.Inventory)?.container;
+  if (!container) {
+    return false;
+  }
+  const item = container.getItem(player.selectedSlotIndex);
+  return !!item && item.typeId === typeId && item.amount >= amount;
+}
+
 function consumeHeldItem(player, typeId, amount) {
   if (amount <= 0 || player.matches({ gameMode: GameMode.Creative })) {
     return true;
@@ -447,7 +459,7 @@ function startEchoTransit(player, block) {
   if (echoCharging.has(player.id) || transitBusy.has(player.id)) {
     return;
   }
-  if (!consumeHeldItem(player, ECHO_SHARD_ID, ECHO_SHARD_COST)) {
+  if (!heldItemAvailable(player, ECHO_SHARD_ID, ECHO_SHARD_COST)) {
     return;
   }
   echoCharging.add(player.id);
@@ -469,17 +481,28 @@ function startEchoTransit(player, block) {
     }
   }, 5);
 
-  system.runTimeout(() => {
+  system.runTimeout(async () => {
     system.clearRun(pulse);
     try {
-      echoCharging.delete(player.id);
-      if (isInAbyss(player)) {
-        leaveAbyss(player);
+      const succeeded = isInAbyss(player)
+        ? await leaveAbyss(player)
+        : await enterAbyss(player);
+      if (succeeded) {
+        // Consume only after the transit routine reports success. If the player
+        // changes their selected slot during the charge, leave the shard intact.
+        if (!consumeHeldItem(player, ECHO_SHARD_ID, ECHO_SHARD_COST)) {
+          player.sendMessage("§e[Abyss] Transit succeeded, but the Echo Shard was not consumed because it is no longer in your selected slot.");
+        }
       } else {
-        enterAbyss(player);
+        player.sendMessage("§c[Abyss] Transit failed. Your Echo Shard was not consumed.");
       }
     } catch (error) {
       console.warn("[meridian] Echo Shard transit skipped: " + error);
+      try {
+        player.sendMessage("§c[Abyss] Transit failed. Your Echo Shard was not consumed.");
+      } catch (messageError) {}
+    } finally {
+      echoCharging.delete(player.id);
     }
   }, ECHO_CHARGE_TICKS);
 }
