@@ -15,13 +15,12 @@
 //   if none exists, it returns to the exact saved entry point. With no stored point it uses the Overworld default spawn.
 //   The teleport runs inside system.run
 //   with a ticking area holding the destination chunk loaded, and logs before/after/20-ticks-later to the content log.
-// - Portal re-entry loop (probable cause of "stuck in the Abyss"): the stored return point is where the player touched
-//   the Overworld portal, i.e. INSIDE a portal block, so after the 3 second lock the contact scan sent them straight back.
-//   Fix: after every transit the player must step OUT of the portal blocks once before contact can trigger again.
+// - Duplicate-contact guard: after any transit the player must be outside portal blocks once before the polling scan
+//   can trigger another transit. This prevents a single continuous overlap from repeatedly switching dimensions.
 // - Portal block orientation (bug 1): a custom block that defines an axis / cardinal direction state renders skewed when
 //   placed with default states. portalPermutation(axis) sets any such state it finds. It can only fix what the block
 //   defines: if the skew comes from the geometry or transformation in blocks/abyssal_portal.json, that file must change.
-// - PHASE 9 fallback: right-click ANY minecraft:reinforced_deepslate block holding an Echo Shard. Sonic boom effect, a
+// - PHASE 9 fallback: right-click a block on a complete 30x30 Reinforced Deepslate frame while holding an Echo Shard. Sonic boom effect, a
 //   1.5 second frame charge, then the player enters the Abyss (Y=32, 16:1 mapping) or, when already in the Abyss,
 //   returns to the stored return point. One Echo Shard is consumed only after transit succeeds (outside Creative).
 // - The return gate on the platform (3x4 portal inside a Reinforced Deepslate frame) is an engineering decision. Its
@@ -593,8 +592,8 @@ function startEchoTransit(player, block) {
         ? await leaveAbyss(player)
         : await enterAbyss(player);
       if (succeeded) {
-        // Consume only after the transit routine reports success. If the player
-        // changes their selected slot during the charge, leave the shard intact.
+        // Consume only after the transit routine reports success, using the slot
+        // captured when the charge began so switching the hotbar cannot bypass the cost.
         if (!consumeHeldItem(player, ECHO_SHARD_ID, ECHO_SHARD_COST, shardSlot)) {
           player.sendMessage("§e[Abyss] Transit succeeded, but the Echo Shard was not consumed because it is no longer in its original inventory slot.");
         }
