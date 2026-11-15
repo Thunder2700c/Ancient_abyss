@@ -210,6 +210,7 @@ function performTeleport(player, destination, dimension, label) {
   player.teleport(destination, { dimension: dimension });
   console.warn("[meridian] " + label + ": teleport call returned. Player reports " + player.dimension.id + " (" + fmt(player.location) + ") AFTER");
   lockTransit(player);
+  const arrivedImmediately = player.dimension.id === dimension.id;
   system.runTimeout(() => {
     try {
       const arrived = player.dimension.id === dimension.id;
@@ -221,6 +222,7 @@ function performTeleport(player, destination, dimension, label) {
       console.warn("[meridian] " + label + ": post-check skipped: " + error);
     }
   }, 20);
+  return arrivedImmediately;
 }
 
 export async function enterAbyss(player) {
@@ -257,6 +259,10 @@ export async function enterAbyss(player) {
       { x: cx + 0.5, y: ABYSS_ENTRY_Y, z: cz + 0.5 },
       { dimension: abyss, facingLocation: { x: cx + 0.5, y: ABYSS_ENTRY_Y + 1, z: cz + GATE_OFFSET_Z } }
     );
+    if (player.dimension.id !== abyss.id) {
+      console.warn("[meridian] enterAbyss: teleport call did not move the player into the Abyss.");
+      return false;
+    }
     lockTransit(player);
     return true;
   } catch (error) {
@@ -297,23 +303,23 @@ export async function leaveAbyss(player) {
     new Promise((resolve) => {
       system.run(() => {
         try {
-          performTeleport(player, destination, destinationDimension, "leaveAbyss");
+          resolve(performTeleport(player, destination, destinationDimension, "leaveAbyss"));
         } catch (error) {
           console.warn("[meridian] leaveAbyss: teleport threw: " + error);
-        } finally {
-          resolve();
+          resolve(false);
         }
       });
     });
 
   try {
+    let arrived = false;
     try {
-      await withLoadedArea(destinationDimension, destination.x, destination.z, teleportInNextTick);
+      arrived = await withLoadedArea(destinationDimension, destination.x, destination.z, teleportInNextTick);
     } catch (areaError) {
       console.warn("[meridian] leaveAbyss: could not hold the destination chunk loaded, teleporting anyway: " + areaError);
-      await teleportInNextTick();
+      arrived = await teleportInNextTick();
     }
-    return true;
+    return arrived;
   } finally {
     transitBusy.delete(player.id);
   }
