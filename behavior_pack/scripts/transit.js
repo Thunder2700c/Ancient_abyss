@@ -199,6 +199,34 @@ function readReturnPoint(player) {
   }
 }
 
+function findAncientCityReturnSpot(dimension, x, z) {
+  // The PRD targets Y=-50 in the Overworld. Never teleport into solid blocks:
+  // search a small radius for a two-block air pocket with a solid floor.
+  for (let radius = 0; radius <= 8; radius++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) {
+          continue;
+        }
+        const bx = Math.floor(x) + dx;
+        const bz = Math.floor(z) + dz;
+        try {
+          const feet = dimension.getBlock({ x: bx, y: -50, z: bz });
+          const head = dimension.getBlock({ x: bx, y: -49, z: bz });
+          const floor = dimension.getBlock({ x: bx, y: -51, z: bz });
+          if (feet?.isAir && head?.isAir && floor && !floor.isAir &&
+              floor.typeId !== "minecraft:water" && floor.typeId !== "minecraft:lava") {
+            return { x: bx + 0.5, y: -50, z: bz + 0.5 };
+          }
+        } catch (error) {
+          // An unloaded or out-of-bounds candidate is skipped.
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
 function lockTransit(player) {
   transitLocks.set(player.id, system.currentTick + TRANSIT_LOCK_TICKS);
   needsPortalExit.add(player.id);
@@ -286,6 +314,15 @@ export async function leaveAbyss(player) {
     if (stored) {
       destinationDimension = world.getDimension(stored.d);
       destination = { x: stored.x, y: stored.y, z: stored.z };
+      if (stored.d === OVERWORLD_ID) {
+        const ancientCitySpot = findAncientCityReturnSpot(destinationDimension, stored.x, stored.z);
+        if (ancientCitySpot) {
+          destination = ancientCitySpot;
+          console.warn("[meridian] leaveAbyss: safe Y=-50 Overworld return spot found near the saved entry coordinates (" + fmt(destination) + ").");
+        } else {
+          console.warn("[meridian] leaveAbyss: no safe Y=-50 air pocket nearby; preserving the exact saved entry point instead.");
+        }
+      }
       console.warn("[meridian] leaveAbyss: stored return point found: " + stored.d + " (" + fmt(destination) + ")");
     }
   } catch (error) {
