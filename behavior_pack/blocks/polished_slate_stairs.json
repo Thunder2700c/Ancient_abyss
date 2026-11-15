@@ -6,18 +6,18 @@
       "menu_category": {
         "category": "construction",
         "group": "meridian:itemGroup.name.abyss_blocks"
-      }
-    },
-    "traits": {
-      "minecraft:placement_direction": {
-        "enabled_states": [
-          "minecraft:cardinal_direction"
-        ]
       },
-      "minecraft:placement_position": {
-        "enabled_states": [
-          "minecraft:vertical_half"
-        ]
+      "traits": {
+        "minecraft:placement_direction": {
+          "enabled_states": [
+            "minecraft:cardinal_direction"
+          ]
+        },
+        "minecraft:placement_position": {
+          "enabled_states": [
+            "minecraft:vertical_half"
+          ]
+        }
       }
     },
     "components": {
