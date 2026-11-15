@@ -101,3 +101,27 @@ Persistent project source register. Update it whenever a phase relies on new API
 - Generate deterministically from the world seed, in small chunk-sized jobs, and keep a persistent completion marker that is written only after generation succeeds.
 - Do not overwrite legacy generated chunks automatically; existing builds must be preserved. Evaluate the improved generator in a fresh test world.
 - Static code/JSON verification is not a substitute for in-game testing on the supported retail Bedrock client with Beta APIs enabled.
+
+## Phases 4–12 source checks
+
+### Official Microsoft / Mojang references
+- Block placement direction trait (cardinal state): https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/traits/placement_direction?view=minecraft-bedrock-stable
+- Block placement position trait (vertical_half): https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/traits/placement_position?view=minecraft-bedrock-stable
+- Custom stair support shape: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_support?view=minecraft-bedrock-stable
+- Multi-box collision shapes: https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_collision_box?view=minecraft-bedrock-stable
+- Block transformation (rotation/translation): https://learn.microsoft.com/en-us/minecraft/creator/reference/content/blockreference/examples/blockcomponents/minecraftblock_transformation?view=minecraft-bedrock-stable
+- Player gliding state: https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/player?view=minecraft-bedrock-stable
+- Mojang Bedrock sample firework entity identifier: https://github.com/Mojang/bedrock-samples/blob/main/behavior_pack/entities/fireworks_rocket.json
+- Container API (first empty slot and setItem): https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/container?view=minecraft-bedrock-stable
+
+### Implementation decisions and known limits
+- Phase 4 portal contact remains a five-tick feet/head polling approximation because the portal block has no collision and there is no matching player-inside-block event. Return prefers a safe Overworld air pocket at Y=-50 near the saved X/Z; if none exists, it falls back to the exact saved entry point to avoid suffocation or solid-block teleporting.
+- Phase 5 uses minecraft:firework_rocket for the item-use event and minecraft:fireworks_rocket for spawned entities. The Elytra is drained to one durability and never broken; this is a workaround, not a native Elytra-disable switch.
+- Phase 7 injects Null Cores into an adjacent End chest and retries missing Shulker guardians independently. The vanilla end_city_treasure loot-table override was removed to avoid replacing vanilla loot. The current Entity Script API does not provide a documented item-frame-entity displayed-item accessor, so the adjacent-frame/chest association is a heuristic, not a positive check that the frame contains an Elytra.
+- Phase 8 requires a complete 30×30 Reinforced Deepslate ring and now checks all four sides. The reverse Warden roar remains an approximation: vanilla sound playback has no reverse-playback parameter; pitch 0.5 is not actual reversed audio.
+- Phase 9 only accepts an Echo Shard interaction on a block belonging to a complete 30×30 Reinforced Deepslate frame. The shard is consumed only after the transit routine reports success.
+- Phase 10 vibration suppression is NOT POSSIBLE through the supported custom-block Script API: vanilla vibration propagation cannot be cancelled from this script. Slowness III is the closest built-in movement penalty (approximately 45%, not exactly 40%); Depth Strider/Abyssalite boots remain exempt.
+- Phase 11 uses minecraft:placement_direction, minecraft:placement_position, multi-box collision, minecraft:support shape stair, and block transformations for directional/top-bottom stair states. Slabs now support top and bottom placement. These JSON changes still require in-game collision/placement testing.
+- Phase 12 exact local block-light subtraction is NOT POSSIBLE through the supported custom-block controls. minecraft:light_dampening affects light passing through the block, not a radius around it. The script applies Darkness to players within a three-block sphere as a visual approximation only.
+
+Static verification does not establish successful retail-client runtime behavior. Test these phases in a disposable world on the project's stated Bedrock target with Beta APIs enabled before treating them as gameplay-verified.
