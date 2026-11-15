@@ -6,9 +6,9 @@
 //   amethyst cluster on top of the pedestal and recorded in a world dynamic property (validated again at ignition).
 // - Place a minecraft:dragon_egg on top of meridian:sculk_altar (or right-click the altar/egg, or slot the last core).
 // - Ignition needs: egg on the altar, 4 slotted pedestals within 12 blocks of the altar, and a Reinforced Deepslate
-//   gate within 40 blocks: ANY complete rectangular ring of Reinforced Deepslate (outer size 5 to 40 blocks per side,
-//   corners included) whose opening is empty (air, sculk vein or portal). Both X and Z orientations are searched, extra
-//   Reinforced Deepslate touching the ring is ignored. The opening that gets filled is whatever size the ring has.
+//   gate within 40 blocks: the Ancient City reinforced-deepslate frame, exactly 22 blocks wide x 8 blocks tall
+//   on its outer edge (56 blocks total; 20 x 6 clear interior). All four corners are included once. Both X and Z
+//   orientations are searched. The ritual fills only the 20 x 6 interior.
 //   The search is time-sliced with system.runJob.
 // - Sequence: purple beams core -> egg (3s), 5s Darkness to players within 32 blocks, roar, then the opening fills
 //   with meridian:abyssal_portal. The egg is never consumed and is locked in place (interaction/break cancelled, and
@@ -43,8 +43,8 @@ const EGG_ID = "minecraft:dragon_egg";
 const FRAME_ID = "minecraft:reinforced_deepslate";
 const PORTAL_ID = "meridian:abyssal_portal";
 
-const FRAME_MIN_SIDE = 5;
-const FRAME_MAX_SIDE = 40;
+const FRAME_OUTER_WIDTH = 22;
+const FRAME_OUTER_HEIGHT = 8;
 const PEDESTALS_REQUIRED = 4;
 const PEDESTAL_RADIUS = 12;
 const PEDESTAL_VERTICAL = 6;
@@ -271,27 +271,23 @@ function detectFrame(dimension, cells) {
         const parts = key.split(",").map(Number);
         const a0 = parts[0];
         const y0 = parts[1];
-        let rightRun = 1;
-        while (rightRun < FRAME_MAX_SIDE && plane.has(cellKey(a0 + rightRun, y0))) {
-          rightRun += 1;
+        // Match the vanilla Ancient City frame exactly: 22 x 8 outer perimeter.
+        // Its perimeter is 2*22 + 2*(8-2) = 56 blocks; corners are counted once.
+        if (!plane.has(cellKey(a0 + FRAME_OUTER_WIDTH - 1, y0)) ||
+            !plane.has(cellKey(a0, y0 + FRAME_OUTER_HEIGHT - 1))) {
+          continue;
         }
-        let upRun = 1;
-        while (upRun < FRAME_MAX_SIDE && plane.has(cellKey(a0, y0 + upRun))) {
-          upRun += 1;
+        const width = FRAME_OUTER_WIDTH;
+        const height = FRAME_OUTER_HEIGHT;
+        if (!ringComplete(plane, a0, y0, width, height)) {
+          continue;
         }
-        for (let width = FRAME_MIN_SIDE; width <= rightRun; width++) {
-          for (let height = FRAME_MIN_SIDE; height <= upRun; height++) {
-            if (!ringComplete(plane, a0, y0, width, height)) {
-              continue;
-            }
-            const from = axis === "x" ? { x: a0 + 1, y: y0 + 1, z: fixed } : { x: fixed, y: y0 + 1, z: a0 + 1 };
-            const to = axis === "x"
-              ? { x: a0 + width - 2, y: y0 + height - 2, z: fixed }
-              : { x: fixed, y: y0 + height - 2, z: a0 + width - 2 };
-            if (interiorClear(dimension, from, to)) {
-              return { from: from, to: to, axis: axis };
-            }
-          }
+        const from = axis === "x" ? { x: a0 + 1, y: y0 + 1, z: fixed } : { x: fixed, y: y0 + 1, z: a0 + 1 };
+        const to = axis === "x"
+          ? { x: a0 + width - 2, y: y0 + height - 2, z: fixed }
+          : { x: fixed, y: y0 + height - 2, z: a0 + width - 2 };
+        if (interiorClear(dimension, from, to)) {
+          return { from: from, to: to, axis: axis };
         }
       }
     }
