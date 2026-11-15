@@ -10,6 +10,16 @@ function getCocoonKey(block) {
 world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   const { block, player, itemStack } = event;
   const dim = player.dimension;
+  const isHandledBlock =
+    (dim.id === "meridian:ancient_abyss" && (block.typeId.includes("bed") || block.typeId === "minecraft:respawn_anchor")) ||
+    block.typeId === "meridian:resonance_cocoon";
+
+  // playerInteractWithBlock can repeat while the interaction button is held.
+  // Cancel repeats for handled blocks, but run their gameplay logic only once.
+  if (!event.isFirstEvent) {
+    if (isHandledBlock) event.cancel = true;
+    return;
+  }
 
   // Cross-Dimensional Rejection: Beds in Ancient Abyss
   if (dim.id === "meridian:ancient_abyss" && block.typeId.includes("bed")) {
