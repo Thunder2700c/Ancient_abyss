@@ -1,71 +1,143 @@
-// behavior_pack/scripts/strata.js
-// Bounded, player-proximal terrain generation for the void-based Ancient Abyss dimension.
-// Bedrock does not expose a per-chunk custom noise-generator hook, so this builds nearby
-// 16x16 chunks with Script API jobs and keeps the result stable with a bedrock marker.
+// The Ancient Abyss — Phase 21 world-generation rework.
+//
+// IMPORTANT ENGINE LIMITATION:
+// A Bedrock custom dimension currently has a void generator and one default biome.
+// This module therefore creates deterministic, player-proximal terrain and three
+// biome-like vertical strata with Script API jobs. It is an approximation, not a
+// native multi-biome/noise generator.
 
 import { world, system, BlockVolume } from "@minecraft/server";
 import { getAbyss, isInAbyss } from "./dimension.js";
 import { sanctuarySteps } from "./sanctuary.js";
 
-const FLOOR_MIN = -58;
-const FLOOR_RANGE = 80;
-const CEILING_TOP = 319;
-const TOWER_MAX_TOP = 128;
+const WORLD_MIN_Y = -64;
+const WORLD_MAX_Y = 319;
+const HADAL_MIN_Y = -63;
+const HADAL_MAX_Y = 24;
+const FISSURE_MIN_Y = 30;
+const FISSURE_MAX_Y = 120;
+const CEILING_MIN_Y = 236;
+const CEILING_MAX_Y = 300;
 const PROTECT_RADIUS = 48;
 const PROTECTED_PROPERTY = "meridian:protected_centers";
+
+const TILE_SIZE = 2;
+const TILES_PER_CHUNK = 16 / TILE_SIZE;
 const SCAN_RADIUS_CHUNKS = 1;
 const SCAN_INTERVAL_TICKS = 100;
-const MAX_ATTEMPTS = 3;
+const MAX_PENDING_CHUNKS = 64;
+const MAX_FAILURES_BEFORE_BACKOFF = 5;
+const LEGACY_MARKER = "minecraft:bedrock";
+const V2_MARKER = "minecraft:barrier";
+const LEGACY_MARKER_OFFSET = { x: 0, y: -64, z: 0 };
+const V2_MARKER_OFFSET = { x: 15, y: -63, z: 15 };
 
 const BLOCK_FALLBACKS = {
-  "meridian:raw_abyssal_silt_ore": "meridian:abyssal_silt"
+  "meridian:raw_abyssal_silt_ore": "meridian:abyssal_silt",
 };
 
 const protectedCenters = [];
 const knownChunks = new Set();
-const attempts = new Map();
 const pending = new Map();
-const order = [];
+const queue = [];
+const failures = new Map();
+const retryAt = new Map();
 let protectedLoaded = false;
-let working = false;
-let areaCounter = 0;
+let queueWorkerRunning = false;
+let tickingAreaCounter = 0;
+let worldSeed = 0;
 
-function block(id) {
-  return BLOCK_FALLBACKS[id] ?? id;
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
-function hash(ix, iz, seed) {
-  let h = Math.imul(ix, 374761393) + Math.imul(iz, 668265263) + Math.imul(seed, 1442695041);
-  h = Math.imul(h ^ (h >>> 13), 1274125045);
-  h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
+function mixSeed(value) {
+  const text = String(value ?? "0");
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
-function smooth(t) {
-  return t * t * (3 - 2 * t);
+function loadWorldSeed() {
+  try {
+    worldSeed = mixSeed(world.seed);
+  } catch (error) {
+    worldSeed = 0;
+    console.warn("[meridian] Could not read world seed; using deterministic fallback: " + error);
+  }
 }
 
-function noise(x, z, scale, seed) {
+function hash01(x, z, salt = 0) {
+  let value = Math.imul((Math.floor(x) | 0) ^ worldSeed, 374761393);
+  value = Math.imul(value + Math.imul((Math.floor(z) | 0) ^ salt, 668265263), 1274126177);
+  value ^= value >>> 15;
+  value = Math.imul(value, 2246822519);
+  value ^= value >>> 13;
+  return (value >>> 0) / 4294967296;
+}
+
+function fade(value) {
+  return value * value * value * (value * (value * 6 - 15) + 10);
+}
+
+function valueNoise(x, z, scale, salt) {
   const gx = Math.floor(x / scale);
   const gz = Math.floor(z / scale);
-  const fx = smooth(x / scale - gx);
-  const fz = smooth(z / scale - gz);
-  const a = hash(gx, gz, seed);
-  const b = hash(gx + 1, gz, seed);
-  const c = hash(gx, gz + 1, seed);
-  const d = hash(gx + 1, gz + 1, seed);
-  const top = a + (b - a) * fx;
-  const bottom = c + (d - c) * fx;
-  return top + (bottom - top) * fz;
+  const tx = fade(x / scale - gx);
+  const tz = fade(z / scale - gz);
+  const a = hash01(gx, gz, salt);
+  const b = hash01(gx + 1, gz, salt);
+  const c = hash01(gx, gz + 1, salt);
+  const d = hash01(gx + 1, gz + 1, salt);
+  const north = a + (b - a) * tx;
+  const south = c + (d - c) * tx;
+  return north + (south - north) * tz;
+}
+
+function fractalNoise(x, z, baseScale, salt, octaves = 4) {
+  let total = 0;
+  let amplitude = 1;
+  let amplitudeSum = 0;
+  for (let octave = 0; octave < octaves; octave++) {
+    total += valueNoise(x, z, baseScale / (2 ** octave), salt + octave * 101) * amplitude;
+    amplitudeSum += amplitude;
+    amplitude *= 0.5;
+  }
+  return total / amplitudeSum;
+}
+
+function ridgeNoise(x, z, scale, salt) {
+  const value = fractalNoise(x, z, scale, salt, 3);
+  return 1 - Math.abs(value * 2 - 1);
 }
 
 function floorTopAt(x, z) {
-  const n = 0.6 * noise(x, z, 96, 11) + 0.4 * noise(x, z, 32, 12);
-  return Math.max(-58, Math.min(24, Math.floor(FLOOR_MIN + FLOOR_RANGE * n)));
+  const continental = fractalNoise(x, z, 192, 11, 4);
+  const basin = fractalNoise(x, z, 72, 12, 4);
+  const detail = fractalNoise(x, z, 26, 13, 3);
+  const ridges = ridgeNoise(x, z, 104, 14);
+  const trench = fractalNoise(x, z, 156, 15, 3);
+  let height = -36
+    + (continental - 0.5) * 50
+    + (basin - 0.5) * 30
+    + (detail - 0.5) * 14
+    + (ridges - 0.48) * 15;
+  if (trench > 0.72) height -= (trench - 0.72) * 50;
+  return Math.floor(clamp(height, -60, HADAL_MAX_Y));
 }
 
 function ceilingBottomAt(x, z) {
-  return CEILING_TOP - (24 + Math.floor(noise(x, z, 72, 19) * 70));
+  const broad = fractalNoise(x, z, 176, 31, 4);
+  const detail = fractalNoise(x, z, 58, 32, 3);
+  const height = 270 + (broad - 0.5) * 38 + (detail - 0.5) * 20;
+  return Math.floor(clamp(height, CEILING_MIN_Y, CEILING_MAX_Y));
+}
+
+function block(id) {
+  return BLOCK_FALLBACKS[id] ?? id;
 }
 
 function loadProtected() {
@@ -75,11 +147,10 @@ function loadProtected() {
   if (typeof raw !== "string") return;
   try {
     const entries = JSON.parse(raw);
-    if (Array.isArray(entries)) {
-      for (const entry of entries) {
-        if (Number.isFinite(entry?.x) && Number.isFinite(entry?.z)) {
-          protectedCenters.push({ x: Math.floor(entry.x), z: Math.floor(entry.z) });
-        }
+    if (!Array.isArray(entries)) return;
+    for (const entry of entries) {
+      if (Number.isFinite(entry?.x) && Number.isFinite(entry?.z)) {
+        protectedCenters.push({ x: Math.floor(entry.x), z: Math.floor(entry.z) });
       }
     }
   } catch (error) {
@@ -101,132 +172,231 @@ export function registerProtectedCenter(x, z) {
 
 function isProtected(x, z) {
   loadProtected();
-  return protectedCenters.some((center) => Math.hypot(center.x - x, center.z - z) < PROTECT_RADIUS);
+  const radiusSquared = PROTECT_RADIUS * PROTECT_RADIUS;
+  return protectedCenters.some((center) => {
+    const dx = center.x - x;
+    const dz = center.z - z;
+    return dx * dx + dz * dz < radiusSquared;
+  });
 }
 
 function put(dimension, x1, y1, z1, x2, y2, z2, id) {
   if (!id) return;
-  const minY = Math.max(-64, Math.min(y1, y2));
-  const maxY = Math.min(CEILING_TOP, Math.max(y1, y2));
-  if (maxY < minY) return;
   const from = {
     x: Math.min(x1, x2),
-    y: minY,
-    z: Math.min(z1, z2)
+    y: Math.max(WORLD_MIN_Y, Math.min(y1, y2)),
+    z: Math.min(z1, z2),
   };
   const to = {
     x: Math.max(x1, x2),
-    y: maxY,
-    z: Math.max(z1, z2)
+    y: Math.min(WORLD_MAX_Y, Math.max(y1, y2)),
+    z: Math.max(z1, z2),
   };
+  if (to.y < from.y) return;
   dimension.fillBlocks(new BlockVolume(from, to), block(id));
 }
 
-function generateCell(dimension, x, z) {
-  const sx = x + 2;
-  const sz = z + 2;
-  const floorTop = floorTopAt(sx, sz);
-  const pit = noise(sx, sz, 40, 14) > 0.84;
-  const guarded = isProtected(sx, sz);
+function* generateHadalFloor(dimension, chunkX, chunkZ) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
 
-  if (!pit) {
-    put(dimension, x, -64, z, x + 3, -64, z + 3, "minecraft:bedrock");
-    put(dimension, x, -63, z, x + 3, floorTop - 3, z + 3, "meridian:fractured_slate");
-    put(dimension, x, floorTop - 2, z, x + 3, floorTop, z + 3, "meridian:abyssal_silt");
+  // Keep the old V1 marker coordinate empty until V2 has committed. This lets
+  // the generator distinguish an interrupted V2 job from a legacy completed chunk.
+  put(dimension, originX + 1, WORLD_MIN_Y, originZ, originX + 15, WORLD_MIN_Y, originZ + 15, "minecraft:bedrock");
+  yield;
+  put(dimension, originX, WORLD_MIN_Y, originZ + 1, originX, WORLD_MIN_Y, originZ + 15, "minecraft:bedrock");
+  yield;
 
-    const plant = hash(x, z, 40);
-    if (plant < 0.12) {
-      put(dimension, sx, floorTop + 1, sz, sx, floorTop + 1, sz, "meridian:glow_polyps");
-    } else if (plant < 0.19) {
-      put(dimension, sx, floorTop + 1, sz, sx, floorTop + 1, sz, "meridian:tendril_coral");
-    }
+  for (let tileX = 0; tileX < TILES_PER_CHUNK; tileX++) {
+    for (let tileZ = 0; tileZ < TILES_PER_CHUNK; tileZ++) {
+      const x = originX + tileX * TILE_SIZE;
+      const z = originZ + tileZ * TILE_SIZE;
+      const sampleX = x + TILE_SIZE / 2;
+      const sampleZ = z + TILE_SIZE / 2;
+      const surfaceY = floorTopAt(sampleX, sampleZ);
+      const ridge = ridgeNoise(sampleX, sampleZ, 34, 41);
+      const shelf = ridge > 0.93 && hash01(sampleX, sampleZ, 42) > 0.32;
+      const surfaceBlock = shelf ? "meridian:fractured_slate" : "meridian:abyssal_silt";
+      const protectedArea = isProtected(sampleX, sampleZ);
 
-    const tower = noise(sx, sz, 56, 15);
-    if (!guarded && tower > 0.66) {
-      const top = Math.min(TOWER_MAX_TOP, Math.floor(40 + ((tower - 0.66) / 0.34) * 78));
-      if (top > floorTop + 8) {
-        put(dimension, x, floorTop + 1, z, x + 3, top - 4, z + 3, "meridian:fractured_slate");
-        for (let y = floorTop + 10; y < top - 4; y += 14) {
-          put(dimension, x, y, z, x + 3, y + 1, z + 3, "meridian:gloomstone");
+      put(dimension, x, HADAL_MIN_Y, z, x + 1, surfaceY - 3, z + 1, "meridian:fractured_slate");
+      yield;
+      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1, surfaceBlock);
+      yield;
+
+      if (!protectedArea) {
+        const flora = hash01(sampleX, sampleZ, 43);
+        const ecology = fractalNoise(sampleX, sampleZ, 42, 44, 3);
+        if (ecology > 0.52 && flora < 0.13) {
+          put(dimension, x, surfaceY + 1, z, x, surfaceY + 1, z, "meridian:glow_polyps");
+          if (flora < 0.035) {
+            put(dimension, x + 1, surfaceY + 1, z + 1, x + 1, surfaceY + 1, z + 1, "meridian:glow_polyps");
+          }
+        } else if (ecology < 0.42 && flora < 0.055) {
+          put(dimension, x + 1, surfaceY + 1, z, x + 1, surfaceY + 1, z, "meridian:tendril_coral");
         }
-        put(dimension, x, top - 3, z, x + 3, top, z + 3, "meridian:sulfuric_basalt");
-        if (hash(x, z, 16) < 0.12) {
-          const height = 6 + Math.floor(hash(x, z, 17) * 14);
-          put(dimension, x + 1, top + 1, z + 1, x + 2, Math.min(CEILING_TOP - 4, top + height), z + 2, "meridian:sulfuric_basalt");
-        }
-        if (hash(x, z, 18) < 0.4) {
-          put(dimension, x + 1, top - 7, z + 1, x + 1, top - 7, z + 1, "meridian:abyssal_silt");
+        if (shelf && hash01(sampleX, sampleZ, 45) < 0.20) {
+          put(dimension, x, surfaceY + 1, z, x + 1, surfaceY + 2, z + 1, "meridian:polished_slate");
+          yield;
         }
       }
-    }
-  }
-
-  const ceilBottom = ceilingBottomAt(sx, sz);
-  put(dimension, x, ceilBottom + 3, z, x + 3, CEILING_TOP, z + 3, "meridian:fractured_slate");
-  put(dimension, x, ceilBottom, z, x + 3, ceilBottom + 2, z + 3, "meridian:petrified_gloom_roots");
-
-  if (!guarded) {
-    const roll = hash(x, z, 20);
-    if (roll < 0.2) {
-      const length = 8 + Math.floor(hash(x, z, 21) * 100);
-      const bottom = Math.max(125, ceilBottom - length);
-      put(dimension, x + 1, bottom + 4, z + 1, x + 2, ceilBottom - 1, z + 2, "meridian:fractured_slate");
-      put(dimension, x + 1, bottom, z + 1, x + 1, bottom + 3, z + 1, "meridian:petrified_gloom_roots");
-    } else if (roll < 0.23) {
-      const bottom = Math.max(130, ceilBottom - 60 - Math.floor(hash(x, z, 22) * 60));
-      put(dimension, x, bottom + 2, z, x + 3, ceilBottom - 1, z + 3, "meridian:polished_slate");
-      put(dimension, x, bottom, z, x + 3, bottom + 1, z + 3, "meridian:chiseled_abyssal_bricks");
-      put(dimension, x + 1, bottom - 1, z + 1, x + 1, bottom - 1, z + 1, "meridian:void_lantern");
+      yield;
     }
   }
 }
 
-function buildCathedral(dimension, chunkX, chunkZ) {
-  if (hash(chunkX, chunkZ, 30) >= 0.02) return;
-  const x0 = chunkX * 16;
-  const z0 = chunkZ * 16;
-  const centerX = x0 + 8;
-  const centerZ = z0 + 8;
-  if (isProtected(centerX, centerZ)) return;
-
-  const yBase = 142 + Math.floor(hash(chunkX, chunkZ, 31) * 32);
-  const roofY = yBase + 11;
-  const bricks = "meridian:chiseled_abyssal_bricks";
-
-  put(dimension, x0 + 1, yBase, z0 + 1, x0 + 14, roofY, z0 + 14, bricks);
-  put(dimension, x0 + 2, yBase + 1, z0 + 2, x0 + 13, roofY - 1, z0 + 13, "minecraft:air");
-  put(dimension, x0 + 2, yBase, z0 + 2, x0 + 13, yBase, z0 + 13, "meridian:polished_slate");
-  put(dimension, x0 + 7, yBase + 1, z0 + 1, x0 + 8, yBase + 4, z0 + 1, "minecraft:air");
-
-  for (const px of [x0 + 2, x0 + 12]) {
-    for (const pz of [z0 + 2, z0 + 12]) {
-      put(dimension, px, roofY + 1, pz, px + 1, Math.min(CEILING_TOP - 2, roofY + 18), pz + 1, "meridian:polished_slate");
-      put(dimension, px, yBase + 1, pz, px, yBase + 1, pz, "meridian:void_lantern");
+function* generateFissureWalls(dimension, chunkX, chunkZ) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  for (let cellX = 0; cellX < 4; cellX++) {
+    for (let cellZ = 0; cellZ < 4; cellZ++) {
+      const x = originX + cellX * 4;
+      const z = originZ + cellZ * 4;
+      const sx = x + 2;
+      const sz = z + 2;
+      if (isProtected(sx, sz)) {
+        yield;
+        continue;
+      }
+      const ridge = ridgeNoise(sx, sz, 44, 61);
+      if (ridge > 0.94) {
+        const baseY = FISSURE_MIN_Y + Math.floor(fractalNoise(sx, sz, 88, 62, 2) * 15);
+        const height = 28 + Math.floor(fractalNoise(sx, sz, 38, 63, 3) * 58);
+        const topY = Math.min(FISSURE_MAX_Y - 2, baseY + height);
+        put(dimension, x, baseY, z, x + 3, baseY + 5, z + 3, "meridian:sulfuric_basalt");
+        yield;
+        if (topY > baseY + 10) {
+          put(dimension, x + 1, baseY + 6, z + 1, x + 2, topY - 4, z + 2, "meridian:sulfuric_basalt");
+          put(dimension, x + 1, baseY + 10, z + 1, x + 2, topY - 5, z + 2, "meridian:gloomstone");
+          yield;
+          put(dimension, x + 1, topY - 3, z + 1, x + 2, topY, z + 2, "meridian:sulfuric_basalt");
+          yield;
+        }
+        if (hash01(sx, sz, 64) > 0.62) {
+          put(dimension, x + 1, baseY + 7, z + 1, x + 1, baseY + 9, z + 1, "meridian:abyssal_silt");
+        }
+      }
+      yield;
     }
   }
+}
 
-  const chest = { x: centerX, y: yBase + 1, z: z0 + 12 };
-  put(dimension, chest.x, chest.y, chest.z, chest.x, chest.y, chest.z, "minecraft:chest");
+function* generateBlackSmoker(dimension, chunkX, chunkZ) {
+  const roll = hash01(chunkX, chunkZ, 71);
+  if (roll > 0.46) return;
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  const centerX = originX + 4 + Math.floor(hash01(chunkX, chunkZ, 72) * 8);
+  const centerZ = originZ + 4 + Math.floor(hash01(chunkX, chunkZ, 73) * 8);
+  if (isProtected(centerX, centerZ)) return;
+
+  const baseY = 36 + Math.floor(hash01(chunkX, chunkZ, 74) * 38);
+  const topY = Math.min(116, baseY + 26 + Math.floor(hash01(chunkX, chunkZ, 75) * 44));
+  const height = topY - baseY;
+  put(dimension, centerX - 4, baseY, centerZ - 4, centerX + 4, baseY + 3, centerZ + 4, "meridian:sulfuric_basalt");
+  yield;
+  put(dimension, centerX - 3, baseY + 4, centerZ - 3, centerX + 3, baseY + 10, centerZ + 3, "meridian:sulfuric_basalt");
+  yield;
+  if (height > 18) {
+    put(dimension, centerX - 2, baseY + 11, centerZ - 2, centerX + 2, topY - 5, centerZ + 2, "meridian:sulfuric_basalt");
+    put(dimension, centerX - 1, baseY + 13, centerZ - 1, centerX + 1, topY - 7, centerZ + 1, "meridian:gloomstone");
+    yield;
+  }
+  put(dimension, centerX - 3, topY - 4, centerZ - 3, centerX + 3, topY, centerZ + 3, "meridian:sulfuric_basalt");
+  put(dimension, centerX - 1, topY - 3, centerZ - 1, centerX + 1, topY - 1, centerZ + 1, "minecraft:air");
+  put(dimension, centerX, topY, centerZ, centerX, topY, centerZ, "meridian:gloomstone");
+  yield;
+}
+
+function* generateInvertedCeiling(dimension, chunkX, chunkZ) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  for (let tileX = 0; tileX < TILES_PER_CHUNK; tileX++) {
+    for (let tileZ = 0; tileZ < TILES_PER_CHUNK; tileZ++) {
+      const x = originX + tileX * TILE_SIZE;
+      const z = originZ + tileZ * TILE_SIZE;
+      const sx = x + TILE_SIZE / 2;
+      const sz = z + TILE_SIZE / 2;
+      const undersideY = ceilingBottomAt(sx, sz);
+      put(dimension, x, undersideY, z, x + 1, undersideY + 2, z + 1, "meridian:petrified_gloom_roots");
+      yield;
+      put(dimension, x, undersideY + 3, z, x + 1, WORLD_MAX_Y, z + 1, "meridian:fractured_slate");
+      yield;
+
+      if (!isProtected(sx, sz) && hash01(sx, sz, 81) < 0.08) {
+        const length = 7 + Math.floor(hash01(sx, sz, 82) * 34);
+        const bottomY = Math.max(FISSURE_MAX_Y + 12, undersideY - length);
+        const width = hash01(sx, sz, 83) > 0.90 ? 1 : 0;
+        put(dimension, sx - width, bottomY, sz - width, sx + width, undersideY - 1, sz + width, "meridian:petrified_gloom_roots");
+        yield;
+      }
+      yield;
+    }
+  }
+}
+
+function* buildInvertedCathedral(dimension, chunkX, chunkZ) {
+  if (hash01(chunkX, chunkZ, 91) > 0.026) return;
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  const centerX = originX + 8;
+  const centerZ = originZ + 8;
+  if (isProtected(centerX, centerZ)) return;
+
+  const anchorY = ceilingBottomAt(centerX, centerZ) - 2;
+  const lowerY = Math.max(FISSURE_MAX_Y + 16, anchorY - 34);
+  const brick = "meridian:chiseled_abyssal_bricks";
+  put(dimension, centerX - 6, anchorY, centerZ - 6, centerX + 6, anchorY + 1, centerZ + 6, brick);
+  yield;
+  put(dimension, centerX - 5, anchorY - 1, centerZ - 5, centerX + 5, anchorY + 1, centerZ + 5, "minecraft:air");
+  yield;
+
+  for (const [dx, dz] of [[-5, -5], [-5, 5], [5, -5], [5, 5]]) {
+    put(dimension, centerX + dx - 1, lowerY, centerZ + dz - 1, centerX + dx + 1, anchorY - 1, centerZ + dz + 1, brick);
+    yield;
+  }
+  put(dimension, centerX - 5, anchorY - 8, centerZ - 1, centerX + 5, anchorY - 7, centerZ + 1, brick);
+  yield;
+  put(dimension, centerX - 1, anchorY - 8, centerZ - 5, centerX + 1, anchorY - 7, centerZ + 5, brick);
+  yield;
+  put(dimension, centerX - 1, lowerY, centerZ - 1, centerX + 1, anchorY - 9, centerZ + 1, "meridian:polished_slate");
+  yield;
+  put(dimension, centerX, anchorY - 13, centerZ, centerX, anchorY - 13, centerZ, "meridian:void_lantern");
+  yield;
 }
 
 function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
-  const x0 = chunkX * 16;
-  const z0 = chunkZ * 16;
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
   try {
-    for (let bx = 0; bx < 4; bx++) {
-      for (let bz = 0; bz < 4; bz++) {
-        generateCell(dimension, x0 + bx * 4, z0 + bz * 4);
-        yield;
-      }
-    }
-    buildCathedral(dimension, chunkX, chunkZ);
-    if (hash(chunkX, chunkZ, 50) < 0.012 && hash(chunkX, chunkZ, 30) >= 0.02 && !isProtected(x0 + 8, z0 + 8)) {
-      yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(x0 + 8, z0 + 8), {
+    yield* generateHadalFloor(dimension, chunkX, chunkZ);
+    yield* generateFissureWalls(dimension, chunkX, chunkZ);
+    yield* generateBlackSmoker(dimension, chunkX, chunkZ);
+    yield* generateInvertedCeiling(dimension, chunkX, chunkZ);
+
+    yield* buildInvertedCathedral(dimension, chunkX, chunkZ);
+    if (hash01(chunkX, chunkZ, 101) < 0.009 && hash01(chunkX, chunkZ, 91) >= 0.026 && !isProtected(originX + 8, originZ + 8)) {
+      yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(originX + 8, originZ + 8), {
         put: (ax, ay, az, bx, by, bz, id) => put(dimension, ax, ay, az, bx, by, bz, id),
-        block: block
+        block,
       });
     }
-    put(dimension, x0, -64, z0, x0, -64, z0, "minecraft:bedrock");
+
+    // This is deliberately written last. The previous script placed its bedrock
+    // marker at the start of generation, which could permanently bless a partial chunk.
+    put(
+      dimension,
+      originX + V2_MARKER_OFFSET.x,
+      V2_MARKER_OFFSET.y,
+      originZ + V2_MARKER_OFFSET.z,
+      originX + V2_MARKER_OFFSET.x,
+      V2_MARKER_OFFSET.y,
+      originZ + V2_MARKER_OFFSET.z,
+      V2_MARKER,
+    );
+    yield;
+    // Commit the legacy marker coordinate only after the V2 marker is present.
+    put(dimension, originX, WORLD_MIN_Y, originZ, originX, WORLD_MIN_Y, originZ, "minecraft:bedrock");
     complete(true);
   } catch (error) {
     console.warn("[meridian] Terrain generation failed for chunk " + chunkX + "," + chunkZ + ": " + error);
@@ -234,42 +404,63 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
   }
 }
 
+function getChunkKey(chunkX, chunkZ) {
+  return chunkX + "," + chunkZ;
+}
+
 async function processChunk(dimension, job) {
-  const x0 = job.cx * 16;
-  const z0 = job.cz * 16;
-  const areaId = "meridian_gen_" + (++areaCounter);
+  const originX = job.chunkX * 16;
+  const originZ = job.chunkZ * 16;
+  const markerV2 = { x: originX + V2_MARKER_OFFSET.x, y: V2_MARKER_OFFSET.y, z: originZ + V2_MARKER_OFFSET.z };
+  const markerLegacy = { x: originX + LEGACY_MARKER_OFFSET.x, y: LEGACY_MARKER_OFFSET.y, z: originZ + LEGACY_MARKER_OFFSET.z };
+  const areaId = "meridian_gen_" + (++tickingAreaCounter);
+  const options = {
+    dimension,
+    from: { x: originX, y: 0, z: originZ },
+    to: { x: originX + 15, y: 0, z: originZ + 15 },
+  };
   let areaCreated = false;
 
   try {
-    await world.tickingAreaManager.createTickingArea(areaId, {
-      dimension,
-      from: { x: x0, y: 0, z: z0 },
-      to: { x: x0 + 15, y: 0, z: z0 + 15 }
-    });
+    const manager = world.tickingAreaManager;
+    if (!manager.hasCapacity(options)) {
+      throw new Error("No ticking-area capacity is available for " + job.key);
+    }
+    if (manager.hasTickingArea(areaId)) manager.removeTickingArea(areaId);
+    await manager.createTickingArea(areaId, options);
     areaCreated = true;
 
-    const marker = dimension.getBlock({ x: x0, y: -64, z: z0 });
-    if (marker?.typeId === "minecraft:bedrock") {
+    const completeMarker = dimension.getBlock(markerV2);
+    if (completeMarker?.typeId === V2_MARKER) {
       knownChunks.add(job.key);
+      failures.delete(job.key);
+      retryAt.delete(job.key);
+      return;
+    }
+
+    // Preserve V1 terrain and player builds. Legacy chunks are not destructively migrated.
+    const legacyMarker = dimension.getBlock(markerLegacy);
+    if (legacyMarker?.typeId === LEGACY_MARKER) {
+      knownChunks.add(job.key);
+      failures.delete(job.key);
+      retryAt.delete(job.key);
       return;
     }
 
     const success = await new Promise((resolve) => {
-      system.runJob(generateChunkJob(dimension, job.cx, job.cz, resolve));
+      system.runJob(generateChunkJob(dimension, job.chunkX, job.chunkZ, resolve));
     });
-    if (success) {
-      knownChunks.add(job.key);
-      attempts.delete(job.key);
-    } else {
-      const count = (attempts.get(job.key) ?? 0) + 1;
-      attempts.set(job.key, count);
-      if (count >= MAX_ATTEMPTS) knownChunks.add(job.key);
-    }
+    if (!success) throw new Error("Generator job did not complete for " + job.key);
+    knownChunks.add(job.key);
+    failures.delete(job.key);
+    retryAt.delete(job.key);
   } catch (error) {
-    const count = (attempts.get(job.key) ?? 0) + 1;
-    attempts.set(job.key, count);
-    if (count >= MAX_ATTEMPTS) knownChunks.add(job.key);
-    console.warn("[meridian] Could not generate terrain chunk " + job.key + ": " + error);
+    const attempt = (failures.get(job.key) ?? 0) + 1;
+    failures.set(job.key, attempt);
+    const backoff = Math.min(6000, 100 * (2 ** Math.min(attempt, MAX_FAILURES_BEFORE_BACKOFF)));
+    retryAt.set(job.key, system.currentTick + backoff);
+    console.warn("[meridian] Could not generate chunk " + job.key + " (attempt " + attempt + "): " + error);
+    throw error;
   } finally {
     if (areaCreated) {
       try {
@@ -281,51 +472,65 @@ async function processChunk(dimension, job) {
   }
 }
 
-async function workQueue(dimension) {
-  if (working) return;
-  working = true;
+async function runQueue(dimension) {
+  if (queueWorkerRunning) return;
+  queueWorkerRunning = true;
   try {
-    while (order.length > 0) {
-      const job = order.shift();
-      await processChunk(dimension, job);
-      pending.delete(job.key);
-      for (const resolve of job.waiters) resolve();
+    while (queue.length > 0) {
+      const job = queue.shift();
+      try {
+        await processChunk(dimension, job);
+        for (const resolve of job.waiters) resolve();
+      } catch (error) {
+        for (const reject of job.rejecters) reject(error);
+      } finally {
+        pending.delete(job.key);
+      }
     }
   } finally {
-    working = false;
-    if (order.length > 0) void workQueue(dimension);
+    queueWorkerRunning = false;
+    if (queue.length > 0) void runQueue(dimension);
   }
 }
 
 function enqueue(dimension, chunkX, chunkZ) {
-  const key = chunkX + "," + chunkZ;
+  const key = getChunkKey(chunkX, chunkZ);
   if (knownChunks.has(key)) return Promise.resolve();
+
+  const retryTick = retryAt.get(key) ?? 0;
+  if (system.currentTick < retryTick) {
+    return Promise.reject(new Error("Terrain chunk " + key + " is waiting for retry backoff"));
+  }
 
   let job = pending.get(key);
   if (!job) {
-    job = { key, cx: chunkX, cz: chunkZ, waiters: [] };
+    if (pending.size >= MAX_PENDING_CHUNKS) {
+      return Promise.reject(new Error("Terrain generation queue is full"));
+    }
+    job = { key, chunkX, chunkZ, waiters: [], rejecters: [] };
     pending.set(key, job);
-    order.push(job);
+    queue.push(job);
   }
-
-  const done = new Promise((resolve) => job.waiters.push(resolve));
-  void workQueue(dimension);
+  const done = new Promise((resolve, reject) => {
+    job.waiters.push(resolve);
+    job.rejecters.push(reject);
+  });
+  void runQueue(dimension);
   return done;
 }
 
-// Generate or verify every chunk in a square around the requested position.
 export function ensureTerrainAround(dimension, x, z, radiusChunks = SCAN_RADIUS_CHUNKS) {
-  const centerX = Math.floor(x / 16);
-  const centerZ = Math.floor(z / 16);
-  const radius = Math.max(0, Math.min(2, Math.floor(radiusChunks)));
+  const centerChunkX = Math.floor(x / 16);
+  const centerChunkZ = Math.floor(z / 16);
+  const radius = clamp(Math.floor(radiusChunks), 0, 2);
   const chunks = [];
   for (let dx = -radius; dx <= radius; dx++) {
     for (let dz = -radius; dz <= radius; dz++) {
-      chunks.push({ x: centerX + dx, z: centerZ + dz, distance: dx * dx + dz * dz });
+      chunks.push({ chunkX: centerChunkX + dx, chunkZ: centerChunkZ + dz, distance: dx * dx + dz * dz });
     }
   }
   chunks.sort((a, b) => a.distance - b.distance);
-  return Promise.all(chunks.map((chunk) => enqueue(dimension, chunk.x, chunk.z)));
+  return Promise.all(chunks.map((entry) => enqueue(dimension, entry.chunkX, entry.chunkZ)));
 }
 
 function scanPlayers() {
@@ -334,9 +539,9 @@ function scanPlayers() {
   for (const player of world.getAllPlayers()) {
     try {
       if (!isInAbyss(player)) continue;
-      const p = player.location;
-      void ensureTerrainAround(abyss, p.x, p.z).catch((error) => {
-        console.warn("[meridian] Nearby terrain scan failed: " + error);
+      const location = player.location;
+      void ensureTerrainAround(abyss, location.x, location.z).catch((error) => {
+        console.warn("[meridian] Nearby terrain generation deferred: " + error);
       });
     } catch (error) {
       console.warn("[meridian] Skipped a player during terrain scan: " + error);
@@ -346,7 +551,9 @@ function scanPlayers() {
 
 export function initStrata() {
   world.afterEvents.worldLoad.subscribe(() => {
+    loadWorldSeed();
     loadProtected();
     system.runInterval(scanPlayers, SCAN_INTERVAL_TICKS);
+    console.info("[meridian] Phase 21 scripted strata generator ready. World seed hash: " + worldSeed);
   });
 }
