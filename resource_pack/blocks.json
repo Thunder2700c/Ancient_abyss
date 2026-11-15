@@ -1,5 +1,9 @@
 {
-  "format_version": [1, 1, 0],
+  "format_version": [
+    1,
+    1,
+    0
+  ],
   "meridian:sculk_altar": {
     "sound": "deepslate"
   },
@@ -67,6 +71,9 @@
     "sound": "deepslate"
   },
   "meridian:hollow_receptacle": {
+    "sound": "deepslate"
+  },
+  "meridian:harmonic_pylon": {
     "sound": "deepslate"
   }
 }
