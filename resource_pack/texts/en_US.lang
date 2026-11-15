@@ -25,6 +25,7 @@ tile.meridian:tendril_coral.name=Tendril Coral
 tile.meridian:void_lantern.name=Void Lantern
 tile.meridian:resonance_ward.name=Resonance Ward
 tile.meridian:resonance_cocoon.name=Resonance Cocoon
+tile.meridian:harmonic_pylon.name=Resonant Village Pylon
 tile.meridian:hollow_receptacle.name=The Hollow Receptacle
 
 ## Items & Progression
@@ -33,6 +34,7 @@ item.meridian:raw_abyssal_silt.name=Raw Abyssal Silt
 item.meridian:abyssal_slag.name=Abyssal Slag
 item.meridian:abyssalite_ingot.name=Abyssalite Ingot
 item.meridian:abyss_upgrade_smithing_template.name=Abyss Upgrade Smithing Template
+item.meridian:padded_treads.name=Padded Treads
 item.meridian:gloom_stick.name=Petrified Gloom Stick
 item.meridian:gloom_door.name=Petrified Gloom Door
 item.meridian:abyssal_anchor.name=Abyssal Anchor
