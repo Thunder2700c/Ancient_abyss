@@ -43,8 +43,8 @@ const EGG_ID = "minecraft:dragon_egg";
 const FRAME_ID = "minecraft:reinforced_deepslate";
 const PORTAL_ID = "meridian:abyssal_portal";
 
-const FRAME_MIN_SIDE = 5;
-const FRAME_MAX_SIDE = 40;
+const FRAME_MIN_SIDE = 30;
+const FRAME_MAX_SIDE = 30;
 const PEDESTALS_REQUIRED = 4;
 const PEDESTAL_RADIUS = 12;
 const PEDESTAL_VERTICAL = 6;
