@@ -42,10 +42,19 @@ system.runInterval(() => {
     const inventory = targetChest.getComponent("minecraft:inventory");
     if (!inventory || !inventory.container) continue;
 
-    // Guaranteed 4 Null Cores insertion
+    // Use an empty slot so the full four-core stack is inserted atomically.
+    // Do not mark this ship as processed if the chest has no free slot.
     const container = inventory.container;
-    const nullCoreItem = new ItemStack("meridian:null_core", 4);
-    container.addItem(nullCoreItem);
+    let emptySlot = -1;
+    for (let slot = 0; slot < container.size; slot++) {
+      if (!container.getItem(slot)) {
+        emptySlot = slot;
+        break;
+      }
+    }
+    if (emptySlot < 0) continue;
+
+    container.setItem(emptySlot, new ItemStack("meridian:null_core", 4));
 
     // Spawn 2 Shulkers guarding the frame
     try {
