@@ -33,9 +33,7 @@ const V2_MARKER = "minecraft:barrier";
 const LEGACY_MARKER_OFFSET = { x: 0, y: -64, z: 0 };
 const V2_MARKER_OFFSET = { x: 15, y: -64, z: 15 };
 
-const BLOCK_FALLBACKS = {
-  "meridian:raw_abyssal_silt_ore": "meridian:abyssal_silt",
-};
+const BLOCK_FALLBACKS = {};
 
 const protectedCenters = [];
 const knownChunks = new Set();
@@ -274,7 +272,7 @@ function* generateFissureWalls(dimension, chunkX, chunkZ) {
           yield;
         }
         if (hash01(sx, sz, 64) > 0.62) {
-          put(dimension, x + 1, baseY + 7, z + 1, x + 1, baseY + 9, z + 1, "meridian:abyssal_silt");
+          put(dimension, x + 1, baseY + 7, z + 1, x + 1, baseY + 9, z + 1, "meridian:raw_abyssal_silt_ore");
         }
       }
       yield;
