@@ -3,6 +3,25 @@
 
 import { world, system, EquipmentSlot } from "@minecraft/server";
 
+function getDefaultOverworldSpawn(overworld) {
+  const spawn = world.getDefaultSpawnLocation();
+  if (spawn.y < 32767) {
+    return spawn;
+  }
+
+  try {
+    const surface = overworld.getTopmostBlock({ x: spawn.x, z: spawn.z });
+    if (surface) {
+      return { x: spawn.x, y: surface.location.y + 1, z: spawn.z };
+    }
+  } catch (error) {
+    console.warn("[meridian] Could not resolve the default spawn surface: " + error);
+  }
+
+  // The world spawn's configured X/Z are still preserved if its chunk is unavailable.
+  return { x: spawn.x, y: 72, z: spawn.z };
+}
+
 world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
   const { block, player, itemStack } = event;
 
@@ -81,12 +100,11 @@ world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
           );
         } else {
           const overworld = world.getDimension("minecraft:overworld");
-          if (overworld) {
-            p.teleport(
-              { x: 0, y: 72, z: 0 },
-              { dimension: overworld, checkForBlocks: false }
-            );
-          }
+          const fallbackSpawn = getDefaultOverworldSpawn(overworld);
+          p.teleport(
+            fallbackSpawn,
+            { dimension: overworld, checkForBlocks: false }
+          );
         }
         p.sendMessage("§4[Temporal Ejection]§r §7Reality violently snaps shut, casting you out of the abyss!");
       }
