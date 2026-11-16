@@ -13,6 +13,7 @@ import { initFog } from "./fog.js";
 import { initEchoDweller, registerDwellerCommands } from "./echo_dweller.js";
 import "./trade_handler.js";
 import "./harmonic_pylon.js";
+import { initResonantWarden } from "./resonant_warden.js";
 import { initPaddedTreads } from "./padded_treads.js";
 
 // These modules register block/item event handlers or scheduled gameplay systems on import.
@@ -42,3 +43,4 @@ initStrata();
 initFog();
 initEchoDweller();
 initPaddedTreads();
+initResonantWarden();
