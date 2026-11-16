@@ -330,6 +330,8 @@ function* generateUndergroundCaves(dimension, chunkX, chunkZ, biome) {
     const startZ = oz + 2 + Math.floor(hash01(chunkX, chunkZ, 320 + cave) * 12);
     if (isProtected(startX, startZ)) { yield; continue; }
     const surface = floorTopAtForBiome(startX, startZ, biome);
+    // Very thin shelves do not have enough stone depth for safe enclosed caves.
+    if (surface < -53) { yield; continue; }
     let x = startX, z = startZ;
     let y = -55 + Math.floor(hash01(chunkX, chunkZ, 330 + cave) * Math.max(2, surface + 49));
     const steps = 7 + Math.floor(hash01(chunkX, chunkZ, 340 + cave) * 4);
