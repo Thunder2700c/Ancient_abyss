@@ -8,8 +8,9 @@
       "crafting_table"
     ],
     "pattern": [
-      "##",
-      "##"
+      "#",
+      "#",
+      "#"
     ],
     "key": {
       "#": {
@@ -18,7 +19,7 @@
     },
     "result": {
       "item": "meridian:fractured_slate",
-      "count": 4
+      "count": 3
     }
   }
 }
