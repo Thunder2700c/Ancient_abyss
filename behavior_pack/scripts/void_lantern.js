@@ -132,7 +132,7 @@ system.runInterval(() => {
   for (const lantern of lanterns) {
     try {
       const dimension = world.getDimension(lantern.dimensionId);
-      const block = dimension.getBlock(lantern);
+      const block = dimension.getBlock({ x: lantern.x, y: lantern.y, z: lantern.z });
 
       // Keep unknown/unloaded locations for the next pass; prune only a loaded
       // position that is confirmed not to contain a Void Lantern.
