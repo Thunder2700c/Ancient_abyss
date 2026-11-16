@@ -355,6 +355,18 @@ const ORE_HOSTS = {
   sulfuric_caldera: ["meridian:fractured_slate", "meridian:sulfuric_basalt"],
   petrified_necropolis: ["meridian:fractured_slate", "meridian:polished_slate", "meridian:chiseled_abyssal_bricks"],
 };
+const IRON_ORE_BY_BIOME = {
+  abyssal_garden: "meridian:abyssal_iron_garden",
+  shattered_shelf: "meridian:abyssal_iron_shelf",
+  sulfuric_caldera: "meridian:abyssal_iron_caldera",
+  petrified_necropolis: "meridian:abyssal_iron_necropolis",
+};
+const GOLD_ORE_BY_BIOME = {
+  abyssal_garden: "meridian:abyssal_gold_garden",
+  shattered_shelf: "meridian:abyssal_gold_shelf",
+  sulfuric_caldera: "meridian:abyssal_gold_caldera",
+  petrified_necropolis: "meridian:abyssal_gold_necropolis",
+};
 const ABYSSALITE_ORE_BY_BIOME = {
   abyssal_garden: "meridian:abyssalite_ore_garden",
   shattered_shelf: "meridian:abyssalite_ore_shelf",
@@ -372,8 +384,8 @@ function* generateOreVeins(dimension, chunkX, chunkZ, biome) {
     const surface = floorTopAtForBiome(x, z, biome);
     const y = clamp(-56 + Math.floor(hash01(chunkX, chunkZ, 420 + vein) * Math.max(2, surface + 52)), -59, surface - 4);
     const roll = hash01(chunkX, chunkZ, 430 + vein);
-    const ore = roll < 0.43 ? "meridian:abyssal_iron_ore"
-      : roll < 0.72 ? "meridian:abyssal_gold_ore"
+    const ore = roll < 0.43 ? IRON_ORE_BY_BIOME[biome]
+      : roll < 0.72 ? GOLD_ORE_BY_BIOME[biome]
       : ABYSSALITE_ORE_BY_BIOME[biome];
     const count = 3 + Math.floor(hash01(chunkX, chunkZ, 440 + vein) * 3);
     for (let i = 0; i < count; i++) {

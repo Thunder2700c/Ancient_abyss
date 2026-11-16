@@ -96,5 +96,29 @@
   },
   "meridian:abyssalite_ore_necropolis": {
     "sound": "deepslate"
+  },
+  "meridian:abyssal_iron_garden": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_gold_garden": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_iron_shelf": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_gold_shelf": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_iron_caldera": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_gold_caldera": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_iron_necropolis": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_gold_necropolis": {
+    "sound": "deepslate"
   }
 }

@@ -105,6 +105,30 @@
     },
     "abyssalite_ore_necropolis": {
       "textures": "textures/blocks/abyssalite_ore_necropolis"
+    },
+    "abyssal_iron_garden": {
+      "textures": "textures/blocks/abyssal_iron_garden"
+    },
+    "abyssal_gold_garden": {
+      "textures": "textures/blocks/abyssal_gold_garden"
+    },
+    "abyssal_iron_shelf": {
+      "textures": "textures/blocks/abyssal_iron_shelf"
+    },
+    "abyssal_gold_shelf": {
+      "textures": "textures/blocks/abyssal_gold_shelf"
+    },
+    "abyssal_iron_caldera": {
+      "textures": "textures/blocks/abyssal_iron_caldera"
+    },
+    "abyssal_gold_caldera": {
+      "textures": "textures/blocks/abyssal_gold_caldera"
+    },
+    "abyssal_iron_necropolis": {
+      "textures": "textures/blocks/abyssal_iron_necropolis"
+    },
+    "abyssal_gold_necropolis": {
+      "textures": "textures/blocks/abyssal_gold_necropolis"
     }
   }
 }
