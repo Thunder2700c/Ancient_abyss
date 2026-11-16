@@ -84,7 +84,7 @@ system.runInterval(() => {
   for (const ward of wards) {
     try {
       const dimension = world.getDimension(ward.dimensionId);
-      const wardBlock = dimension.getBlock(ward);
+      const wardBlock = dimension.getBlock({ x: ward.x, y: ward.y, z: ward.z });
 
       // An undefined block can mean the chunk is not currently queryable.
       // Keep that record; remove only a loaded location confirmed to be empty
