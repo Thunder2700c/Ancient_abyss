@@ -5,7 +5,7 @@
       "identifier": "meridian:abyssal_slag_blast_furnace"
     },
     "tags": ["blast_furnace"],
-    "input": "meridian:abyssal_silt",
+    "input": "meridian:raw_abyssal_silt",
     "output": "meridian:abyssal_slag"
   }
 }
