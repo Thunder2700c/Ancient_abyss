@@ -82,6 +82,11 @@ function hash01(x, z, salt = 0) {
   return (value >>> 0) / 4294967296;
 }
 
+// Shared region lookup for atmosphere and other biome-aware systems.
+export function getTerrainBiomeAt(x, z) {
+  return biomeForChunk(Math.floor(x / 16), Math.floor(z / 16), hash01);
+}
+
 function fade(value) {
   return value * value * value * (value * (value * 6 - 15) + 10);
 }
