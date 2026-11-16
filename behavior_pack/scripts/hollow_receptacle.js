@@ -1,7 +1,7 @@
 // NOT POSSIBLE IN BEDROCK: Native Trial Vault components cannot be configured via custom block JSON to filter arbitrary custom key items or trigger scripted multi-entity dimensional ejections.
 // Closest workaround: Server script intercepts item interaction on meridian:hollow_receptacle with meridian:heart_of_herobrine, initiates reality-tearing lightning, resurrects Herobrine, triggers the Survivor's amnesiac loop, and ejects all players back to their spawn point.
 
-import { world, system, EquipmentSlot } from "@minecraft/server";
+import { world, system, EquipmentSlot, GameMode } from "@minecraft/server";
 
 function getDefaultOverworldSpawn(overworld) {
   const spawn = world.getDefaultSpawnLocation();
@@ -49,7 +49,7 @@ world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
 
     // Consume the Heart of Herobrine
     const equippable = player.getComponent("minecraft:equippable");
-    if (equippable && player.getGameMode() !== "creative") {
+    if (equippable && player.getGameMode() !== GameMode.Creative) {
       equippable.setEquipment(EquipmentSlot.Mainhand, undefined);
     }
 
