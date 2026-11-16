@@ -4,7 +4,7 @@ import { BlockPermutation, world, system } from "@minecraft/server";
 const MAGE_ID = "meridian:tectonic_weft_mage";
 const COLOSSUS_ID = "meridian:tectonic_colossus_warden";
 const PAIR_PREFIX = "meridian:earth_pair_";
-const CHAIN_ID = "minecraft:chain";
+const CHAIN_ID = "meridian:obsidian_chain";
 const MAX_PAIR_DISTANCE = 32;
 const PLAYER_SCAN_DISTANCE = 30;
 const UPDATE_INTERVAL_TICKS = 10;
@@ -70,14 +70,7 @@ function createPairLinks(mages, colossi) {
 }
 
 function getChainPermutation(axis) {
-  const base = BlockPermutation.resolve(CHAIN_ID);
-  const states = base.getAllStates();
-  const axisState = Object.keys(states).find((key) =>
-    key === "pillar_axis" || key.endsWith(":pillar_axis") || key.endsWith("pillar_axis")
-  );
-  if (!axisState) return base;
-  states[axisState] = axis;
-  return BlockPermutation.resolve(CHAIN_ID, states);
+  return BlockPermutation.resolve(CHAIN_ID, { "meridian:axis": axis });
 }
 
 function clearTether(pairTag, dimension) {
