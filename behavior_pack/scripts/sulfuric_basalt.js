@@ -1,7 +1,8 @@
 // Phase 13 — Sulfuric Basalt hazard.
-// The Script API has no dedicated thermal/armor-piercing damage source or continuous
-// block-mining progress event. The closest workable path is magic damage on contact
-// and on block-hit events, rate-limited to one hit per player per second.
+// The Script API has no dedicated thermal damage source or continuous block-mining
+// progress event. This approximation applies magic damage on contact, when mining
+// starts (where that pre-release event is available), and on melee block-hit events.
+// All sources share a one-hit-per-player-per-second limiter.
 //
 // Runtime armor interaction still needs in-game verification; this does not claim
 // a native thermal damage type.
@@ -69,6 +70,22 @@ system.runInterval(() => {
     }
   }
 }, DAMAGE_INTERVAL_TICKS);
+
+
+// Mining hazard: punish the player as soon as they begin breaking the chimney.
+// This signal is pre-release in some API versions, so guard it for compatibility.
+const startBreakingSignal = world.afterEvents.playerStartBreakingBlock;
+if (startBreakingSignal?.subscribe) {
+  startBreakingSignal.subscribe((event) => {
+    try {
+      if (event.block?.typeId === BASALT_ID) {
+        applyBasaltHazard(event.player, event.block);
+      }
+    } catch (error) {
+      console.warn("[meridian] Sulfuric Basalt mining hazard skipped: " + error);
+    }
+  });
+}
 
 // Mining/hitting hazard: deal the same 4 damage at most once per second while the
 // player repeatedly hits a Sulfuric Basalt block without sneaking.
