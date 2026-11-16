@@ -81,10 +81,20 @@ function getChainPermutation(axis) {
 }
 
 function clearTether(pairTag, dimension) {
-  const oldSegments = tetherSegments.get(pairTag) ?? [];
-  for (const point of oldSegments) {
+  const previous = tetherSegments.get(pairTag);
+  if (!previous) return;
+  let oldDimension = dimension;
+  if (previous.dimensionId !== dimension.id) {
     try {
-      const block = dimension.getBlock(point);
+      oldDimension = world.getDimension(previous.dimensionId);
+    } catch (error) {
+      tetherSegments.delete(pairTag);
+      return;
+    }
+  }
+  for (const point of previous.points) {
+    try {
+      const block = oldDimension.getBlock(point);
       if (block?.typeId === CHAIN_ID) block.setType("minecraft:air");
     } catch (error) {
       // Unloaded or changed sections are left untouched.
@@ -142,7 +152,7 @@ function renderTether(mage, colossus, pairTag) {
     }
   }
 
-  tetherSegments.set(pairTag, placed);
+  tetherSegments.set(pairTag, { dimensionId: dimension.id, points: placed });
   try {
     dimension.spawnParticle("minecraft:dragon_breath_trail", {
       x: start.x + dx * 0.5,
@@ -487,16 +497,20 @@ function updateEarthDuo() {
 
   for (const pairTag of tetherSegments.keys()) {
     if (liveTethers.has(pairTag)) continue;
-    const oldSegments = tetherSegments.get(pairTag) ?? [];
-    for (const point of oldSegments) {
-      for (const dimensionId of DIMENSION_IDS) {
-        try {
-          const dimension = world.getDimension(dimensionId);
-          const block = dimension.getBlock(point);
-          if (block?.typeId === CHAIN_ID) block.setType("minecraft:air");
-        } catch (error) {
-          // The pair may have changed dimensions or its chunk may be unloaded.
+    const previous = tetherSegments.get(pairTag);
+    if (previous) {
+      try {
+        const oldDimension = world.getDimension(previous.dimensionId);
+        for (const point of previous.points) {
+          try {
+            const block = oldDimension.getBlock(point);
+            if (block?.typeId === CHAIN_ID) block.setType("minecraft:air");
+          } catch (error) {
+            // Unloaded or changed links are left untouched.
+          }
         }
+      } catch (error) {
+        // The old dimension may no longer be available.
       }
     }
     tetherSegments.delete(pairTag);
