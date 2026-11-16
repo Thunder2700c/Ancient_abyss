@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:block": {
+    "description": {
+      "identifier": "meridian:abyssal_iron_caldera",
+      "menu_category": {
+        "category": "nature",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
+    },
+    "components": {
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 3.2
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 5
+      },
+      "minecraft:loot": "loot_tables/blocks/abyssal_iron_ore.json",
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "abyssal_iron_caldera",
+          "render_method": "opaque"
+        }
+      }
+    }
+  }
+}
