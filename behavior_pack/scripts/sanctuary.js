@@ -1,4 +1,5 @@
 // behavior_pack/scripts/sanctuary.js
+import { registerVoidLantern } from "./void_lantern.js";
 // PHASE 22 - Soundproof Sanctuary: an inverted bell-shaped dome hanging from the Abyss ceiling.
 //
 // Built by script (a hand written structure file is not practical), called from strata.js for rare chunks.
@@ -72,7 +73,9 @@ export function* sanctuarySteps(dimension, chunkX, chunkZ, ceilBottom, ctx) {
   }
   const lantern = ctx.block("meridian:void_lantern");
   if (lantern) {
-    ctx.put(cx, yBottom + BELL_HEIGHT - 3, cz, cx, yBottom + BELL_HEIGHT - 3, cz, lantern);
+    const lanternY = yBottom + BELL_HEIGHT - 3;
+    ctx.put(cx, lanternY, cz, cx, lanternY, cz, lantern);
+    registerVoidLantern(dimension.id, { x: cx, y: lanternY, z: cz });
   }
 
   for (const [dx, dz] of [[-2, 0], [2, 1], [0, -2]]) {
