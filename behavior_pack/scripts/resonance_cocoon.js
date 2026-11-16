@@ -161,8 +161,10 @@ world.afterEvents.playerSpawn.subscribe((event) => {
     world.setDynamicProperty(activeKey, charges);
     player.sendMessage(`§b[Resonance Cocoon]§r §7Spawn anchor consumed. Remaining charges: §e${charges}/4§7.`);
     if (charges === 0) {
+      // Clear the personal Abyss spawn so the next death uses the default Overworld spawn.
+      player.setSpawnPoint(undefined);
       player.setDynamicProperty("active_cocoon_key", undefined);
-      player.sendMessage("§c[Resonance Cocoon]§r §7Your anchor has exhausted all charges. Next death will revert to the surface.");
+      player.sendMessage("§c[Resonance Cocoon]§r §7Your anchor has exhausted all charges. Your next death will return you to the Overworld spawn.");
     }
   }
 });
