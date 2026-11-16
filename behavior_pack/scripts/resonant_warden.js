@@ -1,4 +1,10 @@
 // PHASE 24 — Resonant Warden.
+// Auditory-filter boundary: this custom guardian does not use vibration-triggered
+// target AI and the Script API code below never subscribes to player movement,
+// container access, or Echo Dweller chimes. It therefore ignores those sounds.
+// Bedrock does not expose a cancellable event for selectively filtering every
+// vanilla vibration source, so this is a deliberate non-listening implementation,
+// not a general-purpose sound classifier.
 import {
   world,
   system,
