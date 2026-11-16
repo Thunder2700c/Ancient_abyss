@@ -52,7 +52,7 @@ export const ABYSS_CEILING_Y = 144;
 export const ABYSS_ENTRY_Y = 32;
 export const OVERWORLD_RETURN_Y = -50;
 
-export const SKY_SEAL_BLOCK = "minecraft:deepslate";
+export const SKY_SEAL_BLOCK = "meridian:fractured_slate";
 
 const SEAL_CELL_SIZE = 64;
 const SEAL_MARGIN = 16;
