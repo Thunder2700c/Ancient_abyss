@@ -56,7 +56,7 @@ const PLATFORM_BLOCK = "minecraft:polished_deepslate";
 const GATE_FRAME_BLOCK = "minecraft:reinforced_deepslate";
 const LANTERN_BLOCK = "minecraft:soul_lantern";
 const GATE_OFFSET_Z = -4;
-const LOAD_HALF_SIZE = 16;
+const LOAD_HALF_SIZE = 8;
 const PORTAL_SCAN_INTERVAL_TICKS = 5;
 const TRANSIT_LOCK_TICKS = 60;
 const PLATFORMS_PROPERTY = "meridian:platforms";
@@ -201,7 +201,7 @@ function readReturnPoint(player) {
 function findAncientCityReturnSpot(dimension, x, z) {
   // The PRD targets Y=-50 in the Overworld. Never teleport into solid blocks:
   // search a small radius for a two-block air pocket with a solid floor.
-  for (let radius = 0; radius <= 8; radius++) {
+  for (let radius = 0; radius <= 2; radius++) {
     for (let dx = -radius; dx <= radius; dx++) {
       for (let dz = -radius; dz <= radius; dz++) {
         if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) {
@@ -270,11 +270,9 @@ export async function enterAbyss(player) {
     const cz = Math.floor(target.z);
 
     registerProtectedCenter(cx, cz);
-    try {
-      await ensureTerrainAround(abyss, cx, cz, 2);
-    } catch (terrainError) {
-      console.warn("[meridian] Terrain generation before landing failed: " + terrainError);
-    }
+    // The landing pad is the only blocking preparation. Waiting for a 5x5
+    // terrain batch here made dimension travel appear frozen on first entry.
+    // The surrounding chunks are queued immediately after arrival instead.
     await buildPlatform(abyss, cx, cz);
 
     player.setDynamicProperty(
@@ -291,6 +289,9 @@ export async function enterAbyss(player) {
       return false;
     }
     lockTransit(player);
+    void ensureTerrainAround(abyss, cx, cz, 1).catch((terrainError) => {
+      console.warn("[meridian] Initial surrounding terrain generation deferred: " + terrainError);
+    });
     return true;
   } catch (error) {
     console.warn("[meridian] enterAbyss failed: " + error);
