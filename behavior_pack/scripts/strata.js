@@ -128,6 +128,42 @@ function floorTopAt(x, z) {
   return Math.floor(clamp(height, -60, HADAL_MAX_Y));
 }
 
+
+function biomeForChunk(chunkX, chunkZ) {
+  // A low-frequency field creates broad, connected regions. The same chunk always
+  // receives the same biome for a given world seed; this avoids random patchwork.
+  const value = fractalNoise(chunkX * 16 + 8, chunkZ * 16 + 8, 720, 201, 2);
+  if (value < 0.25) return "abyssal_garden";
+  if (value < 0.50) return "shattered_shelf";
+  if (value < 0.75) return "sulfuric_caldera";
+  return "petrified_necropolis";
+}
+
+function floorTopAtForBiome(x, z, biome) {
+  if (biome === "abyssal_garden") return floorTopAt(x, z);
+
+  const continental = fractalNoise(x, z, 192, 211, 3);
+  const detail = fractalNoise(x, z, 38, 212, 3);
+  const ridges = ridgeNoise(x, z, 88, 213);
+
+  if (biome === "shattered_shelf") {
+    const height = -25 + (continental - 0.5) * 28 + (ridges - 0.45) * 28 + (detail - 0.5) * 8;
+    return Math.floor(clamp(height, -56, 18));
+  }
+
+  if (biome === "sulfuric_caldera") {
+    const caldera = fractalNoise(x, z, 116, 214, 3);
+    let height = -42 + (continental - 0.5) * 22 + (detail - 0.5) * 10;
+    if (caldera > 0.62) height -= (caldera - 0.62) * 54;
+    if (ridges > 0.78) height += (ridges - 0.78) * 34;
+    return Math.floor(clamp(height, -61, 12));
+  }
+
+  // Petrified Necropolis: broad, relatively level foundations with broken ridges.
+  const height = -28 + (continental - 0.5) * 20 + (ridges - 0.5) * 18 + (detail - 0.5) * 6;
+  return Math.floor(clamp(height, -52, 16));
+}
+
 function ceilingBottomAt(x, z) {
   const broad = fractalNoise(x, z, 176, 31, 4);
   const detail = fractalNoise(x, z, 58, 32, 3);
@@ -195,50 +231,132 @@ function put(dimension, x1, y1, z1, x2, y2, z2, id) {
   dimension.fillBlocks(new BlockVolume(from, to), block(id));
 }
 
-function* generateHadalFloor(dimension, chunkX, chunkZ) {
+
+function* beginFloorChunk(dimension, chunkX, chunkZ) {
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
-
-  // Keep the old V1 marker coordinate empty until V2 has committed. This lets
-  // the generator distinguish an interrupted V2 job from a legacy completed chunk.
+  // Retain the legacy marker protocol; the completion marker is committed last.
   put(dimension, originX + 1, WORLD_MIN_Y, originZ, originX + 15, WORLD_MIN_Y, originZ + 15, "minecraft:bedrock");
   yield;
   put(dimension, originX, WORLD_MIN_Y, originZ + 1, originX, WORLD_MIN_Y, originZ + 15, "minecraft:bedrock");
   yield;
+}
 
-  for (let tileX = 0; tileX < TILES_PER_CHUNK; tileX++) {
-    for (let tileZ = 0; tileZ < TILES_PER_CHUNK; tileZ++) {
-      const x = originX + tileX * TILE_SIZE;
-      const z = originZ + tileZ * TILE_SIZE;
-      const sampleX = x + TILE_SIZE / 2;
-      const sampleZ = z + TILE_SIZE / 2;
-      const surfaceY = floorTopAt(sampleX, sampleZ);
-      const ridge = ridgeNoise(sampleX, sampleZ, 34, 41);
-      const shelf = ridge > 0.93 && hash01(sampleX, sampleZ, 42) > 0.32;
-      const surfaceBlock = shelf ? "meridian:fractured_slate" : "meridian:abyssal_silt";
-      const protectedArea = isProtected(sampleX, sampleZ);
-
+function* generateAbyssalGardenFloor(dimension, chunkX, chunkZ) {
+  yield* beginFloorChunk(dimension, chunkX, chunkZ);
+  const ox = chunkX * 16;
+  const oz = chunkZ * 16;
+  for (let tx = 0; tx < TILES_PER_CHUNK; tx++) {
+    for (let tz = 0; tz < TILES_PER_CHUNK; tz++) {
+      const x = ox + tx * TILE_SIZE;
+      const z = oz + tz * TILE_SIZE;
+      const sx = x + TILE_SIZE / 2;
+      const sz = z + TILE_SIZE / 2;
+      const surfaceY = floorTopAtForBiome(sx, sz, "abyssal_garden");
+      const ridge = ridgeNoise(sx, sz, 34, 41);
+      const shelf = ridge > 0.93 && hash01(sx, sz, 42) > 0.32;
       put(dimension, x, HADAL_MIN_Y, z, x + 1, surfaceY - 3, z + 1, "meridian:fractured_slate");
       yield;
-      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1, surfaceBlock);
+      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1,
+        shelf ? "meridian:fractured_slate" : "meridian:abyssal_silt");
       yield;
-
-      if (!protectedArea) {
-        const flora = hash01(sampleX, sampleZ, 43);
-        const ecology = fractalNoise(sampleX, sampleZ, 42, 44, 3);
+      if (!isProtected(sx, sz)) {
+        const flora = hash01(sx, sz, 43);
+        const ecology = fractalNoise(sx, sz, 42, 44, 3);
         if (ecology > 0.52 && flora < 0.13) {
           put(dimension, x, surfaceY + 1, z, x, surfaceY + 1, z, "meridian:glow_polyps");
-          if (flora < 0.035) {
-            put(dimension, x + 1, surfaceY + 1, z + 1, x + 1, surfaceY + 1, z + 1, "meridian:glow_polyps");
-          }
+          if (flora < 0.035) put(dimension, x + 1, surfaceY + 1, z + 1, x + 1, surfaceY + 1, z + 1, "meridian:glow_polyps");
         } else if (ecology < 0.42 && flora < 0.055) {
           put(dimension, x + 1, surfaceY + 1, z, x + 1, surfaceY + 1, z, "meridian:tendril_coral");
         }
-        if (shelf && hash01(sampleX, sampleZ, 45) < 0.20) {
-          put(dimension, x, surfaceY + 1, z, x + 1, surfaceY + 2, z + 1, "meridian:polished_slate");
-          yield;
-        }
       }
+      yield;
+    }
+  }
+}
+
+function* generateShatteredShelfFloor(dimension, chunkX, chunkZ) {
+  yield* beginFloorChunk(dimension, chunkX, chunkZ);
+  const ox = chunkX * 16;
+  const oz = chunkZ * 16;
+  for (let tx = 0; tx < TILES_PER_CHUNK; tx++) {
+    for (let tz = 0; tz < TILES_PER_CHUNK; tz++) {
+      const x = ox + tx * TILE_SIZE;
+      const z = oz + tz * TILE_SIZE;
+      const sx = x + TILE_SIZE / 2;
+      const sz = z + TILE_SIZE / 2;
+      const surfaceY = floorTopAtForBiome(sx, sz, "shattered_shelf");
+      put(dimension, x, HADAL_MIN_Y, z, x + 1, surfaceY - 3, z + 1, "meridian:fractured_slate");
+      yield;
+      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1,
+        hash01(sx, sz, 221) > 0.62 ? "meridian:polished_slate" : "meridian:fractured_slate");
+      yield;
+      const ridge = ridgeNoise(sx, sz, 30, 222);
+      if (!isProtected(sx, sz) && ridge > 0.84 && hash01(sx, sz, 223) > 0.55) {
+        const rise = 2 + Math.floor(hash01(sx, sz, 224) * 5);
+        put(dimension, x, surfaceY + 1, z, x + 1, surfaceY + rise, z + 1, "meridian:fractured_slate");
+        yield;
+      }
+      yield;
+    }
+  }
+}
+
+function* generateSulfuricCalderaFloor(dimension, chunkX, chunkZ) {
+  yield* beginFloorChunk(dimension, chunkX, chunkZ);
+  const ox = chunkX * 16;
+  const oz = chunkZ * 16;
+  for (let tx = 0; tx < TILES_PER_CHUNK; tx++) {
+    for (let tz = 0; tz < TILES_PER_CHUNK; tz++) {
+      const x = ox + tx * TILE_SIZE;
+      const z = oz + tz * TILE_SIZE;
+      const sx = x + TILE_SIZE / 2;
+      const sz = z + TILE_SIZE / 2;
+      const surfaceY = floorTopAtForBiome(sx, sz, "sulfuric_caldera");
+      put(dimension, x, HADAL_MIN_Y, z, x + 1, surfaceY - 3, z + 1, "meridian:fractured_slate");
+      yield;
+      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1, "meridian:sulfuric_basalt");
+      yield;
+      if (!isProtected(sx, sz) && hash01(sx, sz, 231) < 0.045) {
+        put(dimension, x, surfaceY + 1, z, x + 1, surfaceY + 2, z + 1, "meridian:raw_abyssal_silt_ore");
+        yield;
+      }
+      yield;
+    }
+  }
+}
+
+function* generatePetrifiedNecropolisFloor(dimension, chunkX, chunkZ) {
+  yield* beginFloorChunk(dimension, chunkX, chunkZ);
+  const ox = chunkX * 16;
+  const oz = chunkZ * 16;
+  for (let tx = 0; tx < TILES_PER_CHUNK; tx++) {
+    for (let tz = 0; tz < TILES_PER_CHUNK; tz++) {
+      const x = ox + tx * TILE_SIZE;
+      const z = oz + tz * TILE_SIZE;
+      const sx = x + TILE_SIZE / 2;
+      const sz = z + TILE_SIZE / 2;
+      const surfaceY = floorTopAtForBiome(sx, sz, "petrified_necropolis");
+      put(dimension, x, HADAL_MIN_Y, z, x + 1, surfaceY - 3, z + 1, "meridian:fractured_slate");
+      yield;
+      put(dimension, x, surfaceY - 2, z, x + 1, surfaceY, z + 1,
+        hash01(sx, sz, 241) > 0.70 ? "meridian:chiseled_abyssal_bricks" : "meridian:polished_slate");
+      yield;
+      yield;
+    }
+  }
+
+  // Occasional broken street pylons make this region read as an abandoned city.
+  if (hash01(chunkX, chunkZ, 242) < 0.22 && !isProtected(ox + 8, oz + 8)) {
+    const cx = ox + 8;
+    const cz = oz + 8;
+    const baseY = floorTopAtForBiome(cx, cz, "petrified_necropolis");
+    const height = 8 + Math.floor(hash01(chunkX, chunkZ, 243) * 25);
+    for (const [dx, dz, scale] of [[-5, -5, 1], [-5, 5, 2], [5, -5, 2], [5, 5, 1]]) {
+      const topY = baseY + Math.max(4, height - scale * 5);
+      put(dimension, cx + dx, baseY + 1, cz + dz, cx + dx + 1, topY, cz + dz + 1, "meridian:chiseled_abyssal_bricks");
+      yield;
+      put(dimension, cx + dx - 1, topY, cz + dz - 1, cx + dx + 2, topY + 1, cz + dz + 2, "meridian:polished_slate");
       yield;
     }
   }
@@ -307,7 +425,8 @@ function* generateBlackSmoker(dimension, chunkX, chunkZ) {
   yield;
 }
 
-function* generateInvertedCeiling(dimension, chunkX, chunkZ) {
+
+function* generateInvertedCeiling(dimension, chunkX, chunkZ, biome) {
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
   for (let tileX = 0; tileX < TILES_PER_CHUNK; tileX++) {
@@ -323,8 +442,10 @@ function* generateInvertedCeiling(dimension, chunkX, chunkZ) {
       yield;
 
       if (!isProtected(sx, sz) && hash01(sx, sz, 81) < 0.08) {
-        const length = 7 + Math.floor(hash01(sx, sz, 82) * 34);
-        const bottomY = Math.max(FISSURE_MAX_Y + 12, undersideY - length);
+        const floorY = floorTopAtForBiome(sx, sz, biome);
+        const gap = Math.floor(hash01(sx, sz, 82) * 4);
+        // Root tip sits at floorY + 1..4: ground contact or at most three air blocks.
+        const bottomY = Math.min(undersideY - 4, floorY + 1 + gap);
         const width = hash01(sx, sz, 83) > 0.90 ? 1 : 0;
         put(dimension, sx - width, bottomY, sz - width, sx + width, undersideY - 1, sz + width, "meridian:petrified_gloom_roots");
         yield;
@@ -334,8 +455,9 @@ function* generateInvertedCeiling(dimension, chunkX, chunkZ) {
   }
 }
 
-function* buildInvertedCathedral(dimension, chunkX, chunkZ) {
-  if (hash01(chunkX, chunkZ, 91) > 0.026) return;
+function* buildInvertedCathedral(dimension, chunkX, chunkZ, biome) {
+  const structureChance = biome === "petrified_necropolis" ? 0.075 : 0.012;
+  if (hash01(chunkX, chunkZ, 91) > structureChance) return;
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
   const centerX = originX + 8;
@@ -343,7 +465,9 @@ function* buildInvertedCathedral(dimension, chunkX, chunkZ) {
   if (isProtected(centerX, centerZ)) return;
 
   const anchorY = ceilingBottomAt(centerX, centerZ) - 2;
-  const lowerY = Math.max(FISSURE_MAX_Y + 16, anchorY - 34);
+  const floorY = floorTopAtForBiome(centerX, centerZ, biome);
+  // The inverted structure is scaled to the actual local terrain height and reaches the ground.
+  const lowerY = Math.max(WORLD_MIN_Y + 1, floorY + 1);
   const brick = "meridian:chiseled_abyssal_bricks";
   put(dimension, centerX - 6, anchorY, centerZ - 6, centerX + 6, anchorY + 1, centerZ + 6, brick);
   yield;
@@ -368,12 +492,21 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
   try {
-    yield* generateHadalFloor(dimension, chunkX, chunkZ);
+    const biome = biomeForChunk(chunkX, chunkZ);
+    if (biome === "abyssal_garden") {
+      yield* generateAbyssalGardenFloor(dimension, chunkX, chunkZ);
+    } else if (biome === "shattered_shelf") {
+      yield* generateShatteredShelfFloor(dimension, chunkX, chunkZ);
+    } else if (biome === "sulfuric_caldera") {
+      yield* generateSulfuricCalderaFloor(dimension, chunkX, chunkZ);
+      yield* generateBlackSmoker(dimension, chunkX, chunkZ);
+    } else {
+      yield* generatePetrifiedNecropolisFloor(dimension, chunkX, chunkZ);
+    }
     yield* generateFissureWalls(dimension, chunkX, chunkZ);
-    yield* generateBlackSmoker(dimension, chunkX, chunkZ);
-    yield* generateInvertedCeiling(dimension, chunkX, chunkZ);
+    yield* generateInvertedCeiling(dimension, chunkX, chunkZ, biome);
 
-    yield* buildInvertedCathedral(dimension, chunkX, chunkZ);
+    yield* buildInvertedCathedral(dimension, chunkX, chunkZ, biome);
     if (hash01(chunkX, chunkZ, 101) < 0.009 && hash01(chunkX, chunkZ, 91) >= 0.026 && !isProtected(originX + 8, originZ + 8)) {
       yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(originX + 8, originZ + 8), {
         put: (ax, ay, az, bx, by, bz, id) => put(dimension, ax, ay, az, bx, by, bz, id),
