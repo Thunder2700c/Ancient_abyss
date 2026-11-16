@@ -1,67 +1,166 @@
-// NOT POSSIBLE IN BEDROCK: Custom block JSON has no native mob spawn denial component or radius blocker.
-// Closest workaround: Server tick loop scans player surroundings, identifies meridian:void_lantern blocks, repels/despawns hostile mobs within 16 blocks, and emits ambient spark particles.
+// Void Lantern — persistent hostile-mob repulsion field.
+// Bedrock does not expose a native custom-block spawn-denial radius, so this
+// implementation records lantern locations and pushes monster-family entities away.
 
 import { world, system } from "@minecraft/server";
 
-const SCAN_RADIUS = 16;
-const HOSTILE_MOBS = [
-  "minecraft:zombie",
-  "minecraft:skeleton",
-  "minecraft:creeper",
-  "minecraft:spider",
-  "minecraft:witch",
-  "minecraft:enderman",
-  "minecraft:phantom",
-  "minecraft:stray"
-];
+const LANTERN_ID = "meridian:void_lantern";
+const LANTERN_PROPERTY = "meridian:registered_void_lanterns";
+const REPULSION_RADIUS = 16;
+const SCAN_INTERVAL_TICKS = 20;
+const PLAYER_ACTIVE_RADIUS = 40;
 
-system.runInterval(() => {
-  for (const player of world.getAllPlayers()) {
-    const pLoc = player.location;
-    const dim = player.dimension;
-    const px = Math.floor(pLoc.x);
-    const py = Math.floor(pLoc.y);
-    const pz = Math.floor(pLoc.z);
+function readLanterns() {
+  const raw = world.getDynamicProperty(LANTERN_PROPERTY);
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry) =>
+      entry &&
+      typeof entry.dimensionId === "string" &&
+      Number.isFinite(entry.x) &&
+      Number.isFinite(entry.y) &&
+      Number.isFinite(entry.z)
+    );
+  } catch (error) {
+    console.warn("[meridian] Void Lantern registry was unreadable: " + error);
+    return [];
+  }
+}
 
-    const activeLanterns = [];
+function saveLanterns(lanterns) {
+  world.setDynamicProperty(LANTERN_PROPERTY, JSON.stringify(lanterns));
+}
 
-    for (let dx = -SCAN_RADIUS; dx <= SCAN_RADIUS; dx += 4) {
-      for (let dy = -8; dy <= 8; dy += 4) {
-        for (let dz = -SCAN_RADIUS; dz <= SCAN_RADIUS; dz += 4) {
-          const block = dim.getBlock({ x: px + dx, y: py + dy, z: pz + dz });
-          if (block && block.typeId === "meridian:void_lantern") {
-            activeLanterns.push(block.location);
-          }
-        }
-      }
-    }
+function sameLocation(a, b) {
+  return a.dimensionId === b.dimensionId &&
+    a.x === b.x && a.y === b.y && a.z === b.z;
+}
 
-    for (const lanternLoc of activeLanterns) {
-      dim.spawnParticle("meridian:void_lantern_sparks", {
-        x: lanternLoc.x + 0.5,
-        y: lanternLoc.y + 0.5,
-        z: lanternLoc.z + 0.5
-      });
+export function registerVoidLantern(dimensionId, location) {
+  const entry = {
+    dimensionId,
+    x: Math.floor(location.x),
+    y: Math.floor(location.y),
+    z: Math.floor(location.z)
+  };
+  const lanterns = readLanterns();
+  if (!lanterns.some((existing) => sameLocation(existing, entry))) {
+    lanterns.push(entry);
+    saveLanterns(lanterns);
+  }
+}
 
-      for (const mobType of HOSTILE_MOBS) {
-        const entities = dim.getEntities({
-          location: { x: lanternLoc.x + 0.5, y: lanternLoc.y + 0.5, z: lanternLoc.z + 0.5 },
-          maxDistance: SCAN_RADIUS,
-          type: mobType
-        });
+function unregisterVoidLantern(dimensionId, location) {
+  const entry = {
+    dimensionId,
+    x: Math.floor(location.x),
+    y: Math.floor(location.y),
+    z: Math.floor(location.z)
+  };
+  const lanterns = readLanterns();
+  const remaining = lanterns.filter((existing) => !sameLocation(existing, entry));
+  if (remaining.length !== lanterns.length) saveLanterns(remaining);
+}
 
-        for (const mob of entities) {
-          const mLoc = mob.location;
-          const diffX = mLoc.x - (lanternLoc.x + 0.5);
-          const diffZ = mLoc.z - (lanternLoc.z + 0.5);
-          const dist = Math.hypot(diffX, diffZ) || 1;
+world.afterEvents.playerPlaceBlock.subscribe((event) => {
+  if (event.block.typeId === LANTERN_ID) {
+    registerVoidLantern(event.dimension.id, event.block.location);
+  }
+});
 
-          mob.applyKnockback({
-            x: (diffX / dist) * 0.8,
-            z: (diffZ / dist) * 0.8
-          }, 0.2);
-        }
-      }
+world.beforeEvents.playerBreakBlock.subscribe((event) => {
+  if (event.block.typeId === LANTERN_ID) {
+    unregisterVoidLantern(event.dimension.id, event.block.location);
+  }
+});
+
+function hasNearbyPlayer(dimension, center) {
+  try {
+    return dimension.getPlayers({
+      location: center,
+      maxDistance: PLAYER_ACTIVE_RADIUS
+    }).length > 0;
+  } catch (error) {
+    return false;
+  }
+}
+
+function repelMonsters(dimension, center) {
+  try {
+    dimension.spawnParticle("meridian:void_lantern_sparks", center);
+  } catch (error) {
+    // Particle failure must not disable the repulsion field.
+  }
+
+  let monsters;
+  try {
+    monsters = dimension.getEntities({
+      location: center,
+      maxDistance: REPULSION_RADIUS,
+      families: ["monster"]
+    });
+  } catch (error) {
+    console.warn("[meridian] Void Lantern entity query failed: " + error);
+    return;
+  }
+
+  for (const monster of monsters) {
+    try {
+      const location = monster.location;
+      const dx = location.x - center.x;
+      const dz = location.z - center.z;
+      const distance = Math.hypot(dx, dz) || 1;
+      monster.applyKnockback({
+        x: (dx / distance) * 0.8,
+        z: (dz / distance) * 0.8
+      }, 0.2);
+    } catch (error) {
+      // An entity can become invalid between the query and the push.
     }
   }
-}, 20);
+}
+
+system.runInterval(() => {
+  const lanterns = readLanterns();
+  if (lanterns.length === 0) return;
+
+  const active = [];
+  let registryChanged = false;
+
+  for (const lantern of lanterns) {
+    try {
+      const dimension = world.getDimension(lantern.dimensionId);
+      const block = dimension.getBlock(lantern);
+
+      // Keep unknown/unloaded locations for the next pass; prune only a loaded
+      // position that is confirmed not to contain a Void Lantern.
+      if (!block) {
+        active.push(lantern);
+        continue;
+      }
+      if (block.typeId !== LANTERN_ID) {
+        registryChanged = true;
+        continue;
+      }
+
+      active.push(lantern);
+      const center = {
+        x: lantern.x + 0.5,
+        y: lantern.y + 0.5,
+        z: lantern.z + 0.5
+      };
+      if (hasNearbyPlayer(dimension, center)) {
+        repelMonsters(dimension, center);
+      }
+    } catch (error) {
+      // Preserve records when their dimension/chunk cannot currently be queried.
+      active.push(lantern);
+    }
+  }
+
+  if (registryChanged) {
+    saveLanterns(active);
+  }
+}, SCAN_INTERVAL_TICKS);
