@@ -6,7 +6,8 @@
 //   - a dark prismarine rod from the ceiling down to the cap of the bell
 //   - a bell 14 layers tall, radius 7 at the open rim narrowing to 3 at the cap
 //   - shell: dark prismarine outside, black wool lining inside, hollow interior
-//   - a solid floor at the rim level, a 3 wide doorway on the south side, glow-polyps and a void lantern inside
+//   - a solid floor at the rim level, a 3 wide doorway on the south side, a central Resonant Pylon,
+//     glow-polyps and a void lantern inside
 //   - three Echo Dwellers spawned inside
 // Missing meridian blocks are skipped or replaced by vanilla stand-ins through the ctx helpers that strata.js passes in.
 
@@ -55,6 +56,13 @@ export function* sanctuarySteps(dimension, chunkX, chunkZ, ceilBottom, ctx) {
   }
 
   ctx.put(cx - 1, yBottom + 1, cz + RIM_RADIUS - 3, cx + 1, yBottom + 3, cz + RIM_RADIUS + 1, "minecraft:air");
+
+  // Each generated sanctuary receives a usable donation/trade pylon at its centre.
+  // The central tile is clear floor space and does not overlap the Dweller spawn pads.
+  const pylon = ctx.block("meridian:harmonic_pylon");
+  if (pylon) {
+    ctx.put(cx, yBottom + 1, cz, cx, yBottom + 1, cz, pylon);
+  }
 
   const polyps = ctx.block("meridian:glow_polyps");
   if (polyps) {
