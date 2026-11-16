@@ -1,7 +1,7 @@
 // NOT POSSIBLE IN BEDROCK: Block JSON cannot natively alter bed explosion physics across custom dimensions or decrement custom respawn point charges.
 // Closest workaround: Server script intercepts bed/anchor usage in Ancient Abyss to execute explosions, handles Cocoon charging with Echo Shards, executes inward sonic implosions outside the Abyss, and cleanses players setting spawn.
 
-import { world, system, EquipmentSlot } from "@minecraft/server";
+import { world, system, EquipmentSlot, GameMode } from "@minecraft/server";
 
 function getCocoonKey(block) {
   return `cocoon_charges_${block.dimension.id}_${block.location.x}_${block.location.y}_${block.location.z}`;
@@ -103,7 +103,7 @@ world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
           world.setDynamicProperty(chargeKey, charges);
 
           const equippable = player.getComponent("minecraft:equippable");
-          if (equippable && player.getGameMode() !== "creative") {
+          if (equippable && player.getGameMode() !== GameMode.Creative) {
             if (itemStack.amount > 1) {
               itemStack.amount -= 1;
               equippable.setEquipment(EquipmentSlot.Mainhand, itemStack);
