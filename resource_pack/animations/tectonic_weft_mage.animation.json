@@ -1,0 +1,48 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.tectonic_weft_mage.idle": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "position": [0, "math.sin(query.anim_time * 1.8) * 0.25", 0]
+        },
+        "left_arm": {
+          "rotation": ["math.sin(query.anim_time * 1.4) * 3.0", 0, -5.0]
+        },
+        "right_arm": {
+          "rotation": ["math.sin(query.anim_time * 1.4 + 180) * 3.0", 0, 5.0]
+        },
+        "staff": {
+          "rotation": [0, 0, "math.sin(query.anim_time * 1.8) * 4.0"]
+        }
+      }
+    },
+    "animation.tectonic_weft_mage.walk": {
+      "anim_time_update": "query.modified_distance_moved",
+      "loop": true,
+      "bones": {
+        "left_leg": {
+          "rotation": ["math.cos(query.anim_time * 38.17) * 26.0", 0, 0]
+        },
+        "right_leg": {
+          "rotation": ["math.cos(query.anim_time * 38.17 + 180) * 26.0", 0, 0]
+        },
+        "left_arm": {
+          "rotation": ["math.cos(query.anim_time * 38.17 + 180) * 12.0", 0, 0]
+        },
+        "right_arm": {
+          "rotation": ["math.cos(query.anim_time * 38.17) * 12.0", 0, 0]
+        }
+      }
+    },
+    "animation.tectonic_weft_mage.look": {
+      "loop": true,
+      "bones": {
+        "head": {
+          "rotation": ["query.target_x_rotation", "query.target_y_rotation", 0]
+        }
+      }
+    }
+  }
+}
