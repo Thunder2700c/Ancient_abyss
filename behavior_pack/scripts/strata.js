@@ -2,9 +2,8 @@
 //
 // IMPORTANT ENGINE LIMITATION:
 // A Bedrock custom dimension currently has a void generator and one default biome.
-// This module therefore creates deterministic, player-proximal terrain and three
-// biome-like vertical strata with Script API jobs. It is an approximation, not a
-// native multi-biome/noise generator.
+// This module creates deterministic, player-proximal terrain across four large
+// scripted biome regions. It is an approximation, not four native Bedrock biome generators.
 
 import { world, system, BlockVolume } from "@minecraft/server";
 import { getAbyss, isInAbyss } from "./dimension.js";
@@ -130,13 +129,34 @@ function floorTopAt(x, z) {
 
 
 function biomeForChunk(chunkX, chunkZ) {
-  // A low-frequency field creates broad, connected regions. The same chunk always
-  // receives the same biome for a given world seed; this avoids random patchwork.
-  const value = fractalNoise(chunkX * 16 + 8, chunkZ * 16 + 8, 720, 201, 2);
-  if (value < 0.25) return "abyssal_garden";
-  if (value < 0.50) return "shattered_shelf";
-  if (value < 0.75) return "sulfuric_caldera";
-  return "petrified_necropolis";
+  // Seeded, jittered Voronoi regions: each site is assigned one of four biomes.
+  // This gives broad irregular regions and a balanced mix without per-chunk patchwork.
+  const regionSize = 384;
+  const x = chunkX * 16 + 8;
+  const z = chunkZ * 16 + 8;
+  const cellX = Math.floor(x / regionSize);
+  const cellZ = Math.floor(z / regionSize);
+  const biomes = ["abyssal_garden", "shattered_shelf", "sulfuric_caldera", "petrified_necropolis"];
+  let nearestDistance = Infinity;
+  let selectedBiome = biomes[0];
+
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      const gx = cellX + dx;
+      const gz = cellZ + dz;
+      const siteX = (gx + 0.5 + (hash01(gx, gz, 202) - 0.5) * 0.65) * regionSize;
+      const siteZ = (gz + 0.5 + (hash01(gx, gz, 203) - 0.5) * 0.65) * regionSize;
+      const offsetX = x - siteX;
+      const offsetZ = z - siteZ;
+      const distance = offsetX * offsetX + offsetZ * offsetZ;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        const index = Math.min(3, Math.floor(hash01(gx, gz, 204) * 4));
+        selectedBiome = biomes[index];
+      }
+    }
+  }
+  return selectedBiome;
 }
 
 function floorTopAtForBiome(x, z, biome) {
@@ -506,8 +526,9 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
     yield* generateFissureWalls(dimension, chunkX, chunkZ);
     yield* generateInvertedCeiling(dimension, chunkX, chunkZ, biome);
 
+    const cathedralChance = biome === "petrified_necropolis" ? 0.075 : 0.012;
     yield* buildInvertedCathedral(dimension, chunkX, chunkZ, biome);
-    if (hash01(chunkX, chunkZ, 101) < 0.009 && hash01(chunkX, chunkZ, 91) >= 0.026 && !isProtected(originX + 8, originZ + 8)) {
+    if (hash01(chunkX, chunkZ, 101) < 0.009 && hash01(chunkX, chunkZ, 91) >= cathedralChance && !isProtected(originX + 8, originZ + 8)) {
       yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(originX + 8, originZ + 8), {
         put: (ax, ay, az, bx, by, bz, id) => put(dimension, ax, ay, az, bx, by, bz, id),
         block,
