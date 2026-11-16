@@ -68,7 +68,7 @@ function findAssembly(dimension, head) {
           { ...arms[0], typeId: ARM_ID },
           { ...arms[1], typeId: ARM_ID }
         ],
-        spawn: { x: x + 0.5, y: y - 1, z: z + 0.5 }
+        spawn: { x: x + 0.5, y: y - 2, z: z + 0.5 }
       };
     }
   }
@@ -360,8 +360,6 @@ export function initResonantWarden() {
     const typeId = event.itemStack?.typeId;
     if (typeId !== SCULK_VEIN_ID && typeId !== ECHO_SHARD_ID) return;
     event.cancel = true;
-    if (!event.isFirstEvent) return;
-
     const player = event.player;
     const warden = event.target;
     const item = event.itemStack;
