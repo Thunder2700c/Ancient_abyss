@@ -93,6 +93,18 @@
     },
     "obsidian_chain": {
       "textures": "textures/blocks/gloomstone"
+    },
+    "abyssalite_ore_garden": {
+      "textures": "textures/blocks/abyssal_silt"
+    },
+    "abyssalite_ore_shelf": {
+      "textures": "textures/blocks/fractured_slate"
+    },
+    "abyssalite_ore_caldera": {
+      "textures": "textures/blocks/sulfuric_basalt_active"
+    },
+    "abyssalite_ore_necropolis": {
+      "textures": "textures/blocks/polished_slate"
     }
   }
 }

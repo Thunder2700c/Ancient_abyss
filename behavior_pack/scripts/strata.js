@@ -322,6 +322,71 @@ function* generateBlackSmoker(dimension, chunkX, chunkZ) {
 }
 
 
+
+function* generateUndergroundCaves(dimension, chunkX, chunkZ, biome) {
+  const ox = chunkX * 16, oz = chunkZ * 16;
+  for (let cave = 0; cave < 2; cave++) {
+    const startX = ox + 2 + Math.floor(hash01(chunkX, chunkZ, 310 + cave) * 12);
+    const startZ = oz + 2 + Math.floor(hash01(chunkX, chunkZ, 320 + cave) * 12);
+    if (isProtected(startX, startZ)) { yield; continue; }
+    const surface = floorTopAtForBiome(startX, startZ, biome);
+    let x = startX, z = startZ;
+    let y = -55 + Math.floor(hash01(chunkX, chunkZ, 330 + cave) * Math.max(2, surface + 49));
+    const steps = 7 + Math.floor(hash01(chunkX, chunkZ, 340 + cave) * 4);
+    for (let step = 0; step < steps; step++) {
+      const radius = hash01(chunkX * 16 + step, chunkZ * 16 + cave, 350) > 0.78 ? 2 : 1;
+      const cx = clamp(Math.floor(x), ox + 1, ox + 14);
+      const cz = clamp(Math.floor(z), oz + 1, oz + 14);
+      const cy = clamp(Math.floor(y), -59, surface - 5);
+      put(dimension, cx - radius, cy - 1, cz - radius, cx + radius, cy + 1, cz + radius, "minecraft:air");
+      yield;
+      x += Math.sin((step + 1) * 1.31 + cave) * 1.2;
+      z += Math.cos((step + 1) * 1.17 + cave) * 1.2;
+      y += Math.sin((step + 1) * 0.83 + cave) * 0.45;
+    }
+  }
+}
+
+const ORE_HOSTS = {
+  abyssal_garden: ["meridian:fractured_slate", "meridian:abyssal_silt"],
+  shattered_shelf: ["meridian:fractured_slate", "meridian:polished_slate"],
+  sulfuric_caldera: ["meridian:fractured_slate", "meridian:sulfuric_basalt"],
+  petrified_necropolis: ["meridian:fractured_slate", "meridian:polished_slate", "meridian:chiseled_abyssal_bricks"],
+};
+const ABYSSALITE_ORE_BY_BIOME = {
+  abyssal_garden: "meridian:abyssalite_ore_garden",
+  shattered_shelf: "meridian:abyssalite_ore_shelf",
+  sulfuric_caldera: "meridian:abyssalite_ore_caldera",
+  petrified_necropolis: "meridian:abyssalite_ore_necropolis",
+};
+
+function* generateOreVeins(dimension, chunkX, chunkZ, biome) {
+  const ox = chunkX * 16, oz = chunkZ * 16;
+  const hosts = ORE_HOSTS[biome] ?? ORE_HOSTS.abyssal_garden;
+  for (let vein = 0; vein < 5; vein++) {
+    const x = ox + 2 + Math.floor(hash01(chunkX, chunkZ, 400 + vein) * 12);
+    const z = oz + 2 + Math.floor(hash01(chunkX, chunkZ, 410 + vein) * 12);
+    if (isProtected(x, z)) { yield; continue; }
+    const surface = floorTopAtForBiome(x, z, biome);
+    const y = clamp(-56 + Math.floor(hash01(chunkX, chunkZ, 420 + vein) * Math.max(2, surface + 52)), -59, surface - 4);
+    const roll = hash01(chunkX, chunkZ, 430 + vein);
+    const ore = roll < 0.43 ? "meridian:abyssal_iron_ore"
+      : roll < 0.72 ? "meridian:abyssal_gold_ore"
+      : ABYSSALITE_ORE_BY_BIOME[biome];
+    const count = 3 + Math.floor(hash01(chunkX, chunkZ, 440 + vein) * 3);
+    for (let i = 0; i < count; i++) {
+      const bx = clamp(x + (i % 3) - 1, ox + 1, ox + 14);
+      const bz = clamp(z + Math.floor(i / 3), oz + 1, oz + 14);
+      const by = clamp(y + (i % 2), -59, surface - 4);
+      try {
+        const target = dimension.getBlock({ x: bx, y: by, z: bz });
+        if (target && hosts.includes(target.typeId)) target.setType(ore);
+      } catch (error) { /* a missing/out-of-bounds candidate is skipped */ }
+      yield;
+    }
+  }
+}
+
 function* generateInvertedCeiling(dimension, chunkX, chunkZ, biome) {
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
@@ -401,6 +466,8 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
       yield* generatePetrifiedNecropolisFloor(dimension, chunkX, chunkZ, GENERATOR_CONTEXT);
     }
     yield* generateFissureWalls(dimension, chunkX, chunkZ);
+    yield* generateUndergroundCaves(dimension, chunkX, chunkZ, biome);
+    yield* generateOreVeins(dimension, chunkX, chunkZ, biome);
     yield* generateInvertedCeiling(dimension, chunkX, chunkZ, biome);
 
     const cathedralChance = biome === "petrified_necropolis" ? 0.075 : 0.012;
