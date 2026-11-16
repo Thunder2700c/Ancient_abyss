@@ -20,16 +20,20 @@ const HADAL_MIN_Y = -63;
 const HADAL_MAX_Y = 24;
 const FISSURE_MIN_Y = 30;
 const FISSURE_MAX_Y = 120;
-const CEILING_MIN_Y = 236;
-const CEILING_MAX_Y = 300;
+const CEILING_MIN_Y = 128;
+const CEILING_MAX_Y = 140;
+const CEILING_ROOF_Y = 144;
 const PROTECT_RADIUS = 48;
 const PROTECTED_PROPERTY = "meridian:protected_centers";
 
 const TILE_SIZE = 2;
 const TILES_PER_CHUNK = 16 / TILE_SIZE;
 const SCAN_RADIUS_CHUNKS = 1;
-const SCAN_INTERVAL_TICKS = 100;
+const SCAN_INTERVAL_TICKS = 10;
 const MAX_PENDING_CHUNKS = 64;
+const MAX_CONCURRENT_CHUNK_WORKERS = 2;
+const PREFETCH_MIN_DISTANCE = 16;
+const PREFETCH_MAX_DISTANCE = 32;
 const MAX_KNOWN_CHUNKS = 2048;
 const MAX_FAILURES_BEFORE_BACKOFF = 5;
 const LEGACY_MARKER = "minecraft:bedrock";
@@ -46,7 +50,7 @@ const queue = [];
 const failures = new Map();
 const retryAt = new Map();
 let protectedLoaded = false;
-let queueWorkerRunning = false;
+let queueWorkersRunning = 0;
 let tickingAreaCounter = 0;
 let worldSeed = 0;
 
@@ -166,7 +170,7 @@ function floorTopAtForBiome(x, z, biome) {
 function ceilingBottomAt(x, z) {
   const broad = fractalNoise(x, z, 176, 31, 4);
   const detail = fractalNoise(x, z, 58, 32, 3);
-  const height = 270 + (broad - 0.5) * 38 + (detail - 0.5) * 20;
+  const height = 134 + (broad - 0.5) * 12 + (detail - 0.5) * 6;
   return Math.floor(clamp(height, CEILING_MIN_Y, CEILING_MAX_Y));
 }
 
@@ -330,7 +334,8 @@ function* generateInvertedCeiling(dimension, chunkX, chunkZ, biome) {
       const undersideY = ceilingBottomAt(sx, sz);
       put(dimension, x, undersideY, z, x + 1, undersideY + 2, z + 1, "meridian:petrified_gloom_roots");
       yield;
-      put(dimension, x, undersideY + 3, z, x + 1, WORLD_MAX_Y, z + 1, "meridian:fractured_slate");
+      // A thick, continuous low roof replaces the old ceiling columns that reached Y=319.
+      put(dimension, x, undersideY + 3, z, x + 1, CEILING_ROOF_Y, z + 1, "meridian:fractured_slate");
       yield;
 
       if (!isProtected(sx, sz) && hash01(sx, sz, 81) < 0.08) {
@@ -506,9 +511,16 @@ async function processChunk(dimension, job) {
   }
 }
 
-async function runQueue(dimension) {
-  if (queueWorkerRunning) return;
-  queueWorkerRunning = true;
+function prioritizeQueue(centerChunkX, centerChunkZ) {
+  for (const job of queue) {
+    const dx = job.chunkX - centerChunkX;
+    const dz = job.chunkZ - centerChunkZ;
+    job.priority = dx * dx + dz * dz;
+  }
+  queue.sort((a, b) => a.priority - b.priority);
+}
+
+async function runQueueWorker(dimension) {
   try {
     while (queue.length > 0) {
       const job = queue.shift();
@@ -522,8 +534,15 @@ async function runQueue(dimension) {
       }
     }
   } finally {
-    queueWorkerRunning = false;
-    if (queue.length > 0) void runQueue(dimension);
+    queueWorkersRunning = Math.max(0, queueWorkersRunning - 1);
+    if (queue.length > 0) startQueueWorkers(dimension);
+  }
+}
+
+function startQueueWorkers(dimension) {
+  while (queueWorkersRunning < MAX_CONCURRENT_CHUNK_WORKERS && queue.length > 0) {
+    queueWorkersRunning += 1;
+    void runQueueWorker(dimension);
   }
 }
 
@@ -541,7 +560,7 @@ function enqueue(dimension, chunkX, chunkZ) {
     if (pending.size >= MAX_PENDING_CHUNKS) {
       return Promise.reject(new Error("Terrain generation queue is full"));
     }
-    job = { key, chunkX, chunkZ, waiters: [], rejecters: [] };
+    job = { key, chunkX, chunkZ, priority: Infinity, waiters: [], rejecters: [] };
     pending.set(key, job);
     queue.push(job);
   }
@@ -549,7 +568,7 @@ function enqueue(dimension, chunkX, chunkZ) {
     job.waiters.push(resolve);
     job.rejecters.push(reject);
   });
-  void runQueue(dimension);
+  startQueueWorkers(dimension);
   return done;
 }
 
@@ -564,7 +583,9 @@ export function ensureTerrainAround(dimension, x, z, radiusChunks = SCAN_RADIUS_
     }
   }
   chunks.sort((a, b) => a.distance - b.distance);
-  return Promise.all(chunks.map((entry) => enqueue(dimension, entry.chunkX, entry.chunkZ)));
+  const jobs = chunks.map((entry) => enqueue(dimension, entry.chunkX, entry.chunkZ));
+  prioritizeQueue(centerChunkX, centerChunkZ);
+  return Promise.all(jobs);
 }
 
 function scanPlayers() {
@@ -574,9 +595,30 @@ function scanPlayers() {
     try {
       if (!isInAbyss(player)) continue;
       const location = player.location;
-      void ensureTerrainAround(abyss, location.x, location.z).catch((error) => {
+      const centerChunkX = Math.floor(location.x / 16);
+      const centerChunkZ = Math.floor(location.z / 16);
+
+      // Keep the current 3x3 area ahead of the player. The scan runs twice per second
+      // rather than once every five seconds, so a chunk is requested before it is entered.
+      void ensureTerrainAround(abyss, location.x, location.z, SCAN_RADIUS_CHUNKS).catch((error) => {
         console.warn("[meridian] Nearby terrain generation deferred: " + error);
       });
+
+      // Predict the walking/flying direction and queue the next 1–2 chunks early.
+      const velocity = player.getVelocity();
+      const speed = Math.hypot(velocity.x, velocity.z);
+      if (speed > 0.03) {
+        const lead = clamp(Math.ceil(speed * 120), PREFETCH_MIN_DISTANCE, PREFETCH_MAX_DISTANCE);
+        const aheadX = location.x + (velocity.x / speed) * lead;
+        const aheadZ = location.z + (velocity.z / speed) * lead;
+        void ensureTerrainAround(abyss, aheadX, aheadZ, SCAN_RADIUS_CHUNKS).catch((error) => {
+          console.warn("[meridian] Forward terrain prefetch deferred: " + error);
+        });
+      }
+
+      // Re-rank queued work relative to the player's current chunk so stale requests
+      // behind a moving player cannot monopolize the generator queue.
+      prioritizeQueue(centerChunkX, centerChunkZ);
     } catch (error) {
       console.warn("[meridian] Skipped a player during terrain scan: " + error);
     }
