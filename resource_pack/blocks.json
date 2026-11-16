@@ -78,5 +78,23 @@
   },
   "meridian:harmonic_pylon": {
     "sound": "deepslate"
+  },
+  "meridian:abyssal_iron_ore": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssal_gold_ore": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssalite_ore_garden": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssalite_ore_shelf": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssalite_ore_caldera": {
+    "sound": "deepslate"
+  },
+  "meridian:abyssalite_ore_necropolis": {
+    "sound": "deepslate"
   }
 }
