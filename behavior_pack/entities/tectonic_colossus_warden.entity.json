@@ -1,0 +1,58 @@
+{
+  "format_version": "1.20.80",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "meridian:tectonic_colossus_warden",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:health": {
+        "value": 220,
+        "max": 220
+      },
+      "minecraft:collision_box": {
+        "width": 2.0,
+        "height": 3.8
+      },
+      "minecraft:physics": {},
+      "minecraft:scale": {
+        "value": 1.5
+      },
+      "minecraft:movement": {
+        "value": 0.24
+      },
+      "minecraft:navigation.walk": {
+        "can_path_over_water": false,
+        "avoid_water": true
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:type_family": {
+        "family": ["monster", "tectonic_colossus_warden", "meridian_earth_duo"]
+      },
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 7,
+        "look_distance": 30.0,
+        "probability": 1.0
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 8
+      },
+      "minecraft:behavior.random_stroll": {
+        "priority": 6,
+        "speed_multiplier": 0.55
+      },
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:persistent": {},
+      "minecraft:nameable": {}
+    }
+  }
+}
