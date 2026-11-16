@@ -40,6 +40,9 @@
   "meridian:sulfuric_basalt": {
     "sound": "basalt"
   },
+  "meridian:raw_abyssal_silt_ore": {
+    "sound": "basalt"
+  },
   "meridian:petrified_gloom_roots": {
     "sound": "wood"
   },
