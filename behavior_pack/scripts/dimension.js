@@ -14,17 +14,15 @@
 // 1. World bounds Y -64..320 (384 tall): SUPPORTED by the custom dimension JSON. verifyAbyssBounds()
 //    reads Dimension.heightRange on world load and reports whether the loaded dimension matches.
 //
-// 2. Fixed time 18000: NOT POSSIBLE IN BEDROCK (per-dimension). Reason: WorldClockRegistry.registerClock exists,
-//    but no documented API binds a custom dimension to its own clock; the time of day stays global.
-//    Closest workaround: sealed ceiling (item 3) removes skylight so the Abyss is dark at any global time;
-//    fog/sky colour belongs in the resource pack (biomes_client.json / fog files).
+// 2. Fixed time 18000: NOT POSSIBLE PER DIMENSION IN BEDROCK. The current World Clock API is world-scoped,
+//    not dimension-scoped; pausing the built-in daylight clock would also pause day/night in the Overworld.
+//    The Abyss therefore hides the changing sky behind an opaque roof rather than altering the world's clock.
 //
-// 3. Zero natural skylight: APPROXIMATION. There is no per-dimension "has_skylight" switch. Skylight is blocked by
-//    laying an opaque ceiling layer at Y=319 (like the Nether roof). requestSkySeal() builds it lazily, one
-//    64x64 cell (+16 block margin so light cannot leak in sideways) at a time, around every player in the Abyss.
-//    Only cells near players are sealed; unvisited areas are still lit by the sky.
-//    Phase 21 builds a layered, undulating ceiling inside generated chunks (Gloom-Roots underneath, Fractured Slate above).
-//    This separate deepslate sky-seal only closes remaining air gaps at Y=319; its air-only filter does not overwrite terrain.
+// 3. Zero natural skylight: APPROXIMATION. There is no per-dimension "has_skylight" switch. A lower opaque
+//    ceiling is built at Y=144. requestSkySeal() also lazily seals a 96x96 area at Y=144 around each player,
+//    using an air-only filter so existing structures and player-placed blocks are not overwritten.
+//    Phase 21 generates the visible undulating underside (Gloom-Roots and Fractured Slate) below this roof.
+//    Unvisited areas are not sealed until a player approaches them.
 //
 // 4. Ambient light floor 0.08: NOT POSSIBLE IN BEDROCK. Reason: ambient/minimum brightness is a client-side
 //    rendering setting with no scripting or dimension component. Workaround: none needed; the dimension stays
@@ -50,7 +48,7 @@ export const ABYSS_ID = "meridian:ancient_abyss";
 export const COORDINATE_SCALE = 16;
 export const ABYSS_MIN_Y = -64;
 export const ABYSS_MAX_Y = 320;
-export const ABYSS_CEILING_Y = 319;
+export const ABYSS_CEILING_Y = 144;
 export const ABYSS_ENTRY_Y = 32;
 export const OVERWORLD_RETURN_Y = -50;
 
@@ -61,7 +59,7 @@ const SEAL_MARGIN = 16;
 const SEAL_LOOKAHEAD = 24;
 const SEAL_CHECK_INTERVAL_TICKS = 40;
 const SEAL_MAX_FAILURES = 3;
-const SEALED_PROPERTY = "meridian:sealed_cells";
+const SEALED_PROPERTY = "meridian:sealed_cells_low_roof_v2";
 
 const sealedCells = new Set();
 const pendingCells = new Set();
