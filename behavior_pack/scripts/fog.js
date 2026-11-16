@@ -12,10 +12,16 @@
 
 import { world, system } from "@minecraft/server";
 import { isInAbyss } from "./dimension.js";
+import { getTerrainBiomeAt } from "./strata.js";
 
-const FOG_ID = "meridian:abyss_fog";
 const FOG_KEY = "meridian_abyss";
-const FOG_TAG = "meridian:abyss_fog_on";
+const FOG_BY_BIOME = {
+  abyssal_garden: { id: "meridian:abyssal_bloom_fog", tag: "meridian:fog_abyssal_bloom" },
+  shattered_shelf: { id: "meridian:abyss_fog", tag: "meridian:abyss_fog_on" },
+  sulfuric_caldera: { id: "meridian:sulfuric_haze_fog", tag: "meridian:fog_sulfuric_haze" },
+  petrified_necropolis: { id: "meridian:necropolis_veil_fog", tag: "meridian:fog_necropolis_veil" },
+};
+const FOG_TAGS = Object.values(FOG_BY_BIOME).map((entry) => entry.tag);
 const SNOW_PARTICLE = "meridian:marine_snow";
 const SYNC_INTERVAL_TICKS = 20;
 const SNOW_INTERVAL_TICKS = 6;
@@ -25,17 +31,28 @@ const SNOW_HEIGHT = 6;
 
 let snowAvailable = true;
 
-function pushFog(player) {
+function removeFogTags(player) {
+  for (const tag of FOG_TAGS) {
+    try {
+      player.removeTag(tag);
+    } catch (error) {
+      // A stale tag is harmless; continue clearing the remaining tags.
+    }
+  }
+}
+
+function pushFog(player, profile) {
   try {
     player.runCommand("fog @s remove " + FOG_KEY);
   } catch (error) {
-    // Nothing to remove yet.
+    // No previous regional fog was active.
   }
+  removeFogTags(player);
   try {
-    player.runCommand("fog @s push " + FOG_ID + " " + FOG_KEY);
-    player.addTag(FOG_TAG);
+    player.runCommand("fog @s push " + profile.id + " " + FOG_KEY);
+    player.addTag(profile.tag);
   } catch (error) {
-    console.warn("[meridian] Could not push " + FOG_ID + ": " + error);
+    console.warn("[meridian] Could not push " + profile.id + ": " + error);
   }
 }
 
@@ -45,18 +62,22 @@ function clearFog(player) {
   } catch (error) {
     // The fog was already gone.
   }
-  player.removeTag(FOG_TAG);
+  removeFogTags(player);
 }
 
 function syncFog() {
   for (const player of world.getAllPlayers()) {
     try {
-      const inside = isInAbyss(player);
-      const active = player.hasTag(FOG_TAG);
-      if (inside && !active) {
-        pushFog(player);
-      } else if (!inside && active) {
-        clearFog(player);
+      if (!isInAbyss(player)) {
+        if (FOG_TAGS.some((tag) => player.hasTag(tag))) clearFog(player);
+        continue;
+      }
+
+      const location = player.location;
+      const biome = getTerrainBiomeAt(location.x, location.z);
+      const desired = FOG_BY_BIOME[biome] ?? FOG_BY_BIOME.shattered_shelf;
+      if (!player.hasTag(desired.tag)) {
+        pushFog(player, desired);
       }
     } catch (error) {
       console.warn("[meridian] Fog sync skipped a player: " + error);
@@ -93,7 +114,7 @@ export function initFog() {
   world.afterEvents.worldLoad.subscribe(() => {
     world.afterEvents.playerSpawn.subscribe((event) => {
       if (event.initialSpawn) {
-        event.player.removeTag(FOG_TAG);
+        clearFog(event.player);
       }
     });
     system.runInterval(syncFog, SYNC_INTERVAL_TICKS);
