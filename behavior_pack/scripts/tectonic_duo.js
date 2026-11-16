@@ -34,6 +34,26 @@ function distanceSquared(a, b) {
   return dx * dx + dy * dy + dz * dz;
 }
 
+function distancePointToSegment(point, start, end) {
+  const vx = end.x - start.x;
+  const vy = end.y - start.y;
+  const vz = end.z - start.z;
+  const lengthSquared = vx * vx + vy * vy + vz * vz;
+  if (lengthSquared < 0.0001) return Math.sqrt(distanceSquared(point, start));
+  const projection = (
+    (point.x - start.x) * vx +
+    (point.y - start.y) * vy +
+    (point.z - start.z) * vz
+  ) / lengthSquared;
+  const t = Math.max(0, Math.min(1, projection));
+  const closest = {
+    x: start.x + vx * t,
+    y: start.y + vy * t,
+    z: start.z + vz * t
+  };
+  return Math.sqrt(distanceSquared(point, closest));
+}
+
 function getPairTag(entity) {
   try {
     return entity.getTags().find((tag) => tag.startsWith(PAIR_PREFIX));
@@ -377,6 +397,7 @@ function startRam(colossus, target) {
     ramStates.set(colossus.id, {
       targetId: target.id,
       untilTick: tick + 40,
+      lastPosition: { x: origin.x, y: origin.y, z: origin.z },
       hit: false
     });
     return true;
@@ -398,21 +419,26 @@ function updateRamImpact(colossus, players) {
   }
 
   if (state.hit) return true;
-  const a = colossus.location;
-  const b = target.location;
-  const horizontal = Math.hypot(a.x - b.x, a.z - b.z);
-  const vertical = Math.abs(a.y - b.y);
+  const current = colossus.location;
+  const previous = state.lastPosition ?? current;
+  state.lastPosition = { x: current.x, y: current.y, z: current.z };
+  const targetLocation = target.location;
+  const horizontal = Math.hypot(current.x - targetLocation.x, current.z - targetLocation.z);
+  const vertical = Math.abs(current.y - targetLocation.y);
+  const sweptDistance = distancePointToSegment(targetLocation, previous, current);
 
-  if (horizontal <= 2.9 && vertical <= 3.5) {
+  // The controller checks every 10 ticks. Swept-path distance prevents the ram
+  // from tunnelling through a player between two script updates.
+  if ((horizontal <= 2.9 && vertical <= 3.5) || sweptDistance <= 2.4) {
     state.hit = true;
     try {
       target.applyDamage(12);
-      const dx = b.x - a.x;
-      const dz = b.z - a.z;
+      const dx = targetLocation.x - current.x;
+      const dz = targetLocation.z - current.z;
       const distance = Math.hypot(dx, dz) || 1;
       target.applyKnockback({ x: (dx / distance) * 1.8, z: (dz / distance) * 1.8 }, 0.75);
       target.addEffect("slowness", 35, { amplifier: 0, showParticles: false });
-      colossus.dimension.playSound("entity.iron_golem.attack", a, { volume: 1.8, pitch: 0.7 });
+      colossus.dimension.playSound("entity.iron_golem.attack", current, { volume: 1.8, pitch: 0.7 });
     } catch (error) {
       console.warn("[Ancient Abyss] Colossus ram impact failed: " + error);
     }
