@@ -466,7 +466,11 @@ function* generateSurfaceCaveMouth(dimension, chunkX, chunkZ, biome, centerX, ce
     const radius = 2 + Math.floor(t * (maxRadius - 2));
     const x = clamp(Math.round(centerX + driftX), originX + 2, originX + 13);
     const z = clamp(Math.round(centerZ + driftZ), originZ + 2, originZ + 13);
-    const y = surfaceY - step;
+    if (isProtected(x, z)) continue;
+    const localSurfaceY = floorTopAtForBiome(x, z, biome);
+    const localDepth = localSurfaceY - caveY;
+    if (localDepth < 4) continue;
+    const y = Math.floor(localSurfaceY - localDepth * t);
     put(dimension, x - radius, y, z - radius, x + radius, y, z + radius, "minecraft:air");
     yield;
   }
