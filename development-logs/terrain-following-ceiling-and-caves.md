@@ -5,7 +5,7 @@
 - Rebased hydrothermal fissure walls and sulfuric black smokers on local terrain height and capped them below the local roof.
 - Expanded the former two short cave passages into a multi-level system with broad rounded caverns, winding main passages, thinner noodle-style branches, occasional lower chambers, and vertical connectors.
 - Added deterministic cave portals that align across neighbouring chunk borders. Edge carving remains clipped to the chunk currently being generated.
-- Cave passages reach the upper underground band near the surface as well as deeper strata, while preserving a 5-block stone buffer under the surface.
+- Cave passages reach the upper underground band near the surface as well as deeper strata, while preserving a 5-block stone buffer under ordinary cave roofs. Occasional collapsed sinkholes open from the surface into the upper cave network.
 - Existing V1/V2 completion markers are unchanged. Previously generated chunks are skipped, so the new roof and caves apply to newly generated chunks only.
 - Removed the old sanctuary placement cutoff tied to the previous high ceiling; sanctuaries now follow the terrain-relative roof.
 - Pack versions remain 1.0.4.

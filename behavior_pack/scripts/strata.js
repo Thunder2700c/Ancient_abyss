@@ -282,7 +282,7 @@ function* generateFissureWalls(dimension, chunkX, chunkZ, biome) {
         const baseY = floorY + 2 + Math.floor(fractalNoise(sx, sz, 88, 62, 2) * 3);
         const desiredHeight = 16 + Math.floor(fractalNoise(sx, sz, 38, 63, 3) * 28);
         const topY = Math.min(roofY - 5, baseY + desiredHeight);
-        if (topY <= baseY + 8) {
+        if (topY <= baseY + 17) {
           yield;
           continue;
         }
@@ -338,6 +338,7 @@ function* generateBlackSmoker(dimension, chunkX, chunkZ, biome) {
 function carveCaveBox(dimension, originX, originZ, biome, x, y, z, radiusX, radiusY, radiusZ) {
   const cx = clamp(Math.round(x), originX, originX + 15);
   const cz = clamp(Math.round(z), originZ, originZ + 15);
+  if (isProtected(cx, cz)) return false;
   const surfaceY = floorTopAtForBiome(cx, cz, biome);
   const maxCaveY = surfaceY - CAVE_SURFACE_MARGIN;
   if (maxCaveY <= CAVE_MIN_Y + 1) return false;
@@ -450,12 +451,36 @@ function* connectCaveToChunkEdge(dimension, chunkX, chunkZ, biome, side, centerX
   }
 }
 
+function* generateSurfaceCaveMouth(dimension, chunkX, chunkZ, biome, centerX, centerZ, surfaceY, caveY, salt) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  const depth = surfaceY - caveY;
+  if (depth < 4 || isProtected(centerX, centerZ)) return;
+
+  const phase = hash01(chunkX, chunkZ, salt) * Math.PI * 2;
+  const maxRadius = 2 + Math.floor(hash01(chunkX, chunkZ, salt + 1) * 2);
+  for (let step = 0; step <= depth; step++) {
+    const t = step / Math.max(1, depth);
+    const driftX = Math.sin(t * Math.PI * 1.35 + phase) * 0.85;
+    const driftZ = Math.cos(t * Math.PI * 1.15 + phase) * 0.85;
+    const radius = 2 + Math.floor(t * (maxRadius - 2));
+    const x = clamp(Math.round(centerX + driftX), originX + 2, originX + 13);
+    const z = clamp(Math.round(centerZ + driftZ), originZ + 2, originZ + 13);
+    const y = surfaceY - step;
+    put(dimension, x - radius, y, z - radius, x + radius, y, z + radius, "minecraft:air");
+    yield;
+  }
+}
+
 function* generateUndergroundCaves(dimension, chunkX, chunkZ, biome) {
   const ox = chunkX * 16;
   const oz = chunkZ * 16;
   const centerX = ox + 5 + Math.floor(hash01(chunkX, chunkZ, 310) * 6);
   const centerZ = oz + 5 + Math.floor(hash01(chunkX, chunkZ, 311) * 6);
   const surface = floorTopAtForBiome(centerX, centerZ, biome);
+
+  // Leave protected sanctuaries and their approach terrain untouched.
+  if (isProtected(centerX, centerZ)) return;
 
   // Deep ocean trenches do not have enough stone thickness for safe multi-level caves.
   if (surface < -50) return;
@@ -471,6 +496,14 @@ function* generateUndergroundCaves(dimension, chunkX, chunkZ, biome) {
     const roomZ = 4 + Math.floor(hash01(chunkX, chunkZ, 315) * 4);
     const roomY = 3 + Math.floor(hash01(chunkX, chunkZ, 316) * 3);
     yield* carveCaveChamber(dimension, ox, oz, biome, centerX, upperY, centerZ, roomX, roomY, roomZ);
+  }
+
+  // Some upper caves collapse through the surface, forming walk-in sinkholes.
+  if (hash01(chunkX, chunkZ, 331) < 0.18) {
+    yield* generateSurfaceCaveMouth(
+      dimension, chunkX, chunkZ, biome,
+      centerX, centerZ, surface, upperY, 332,
+    );
   }
 
   // Spaghetti-style main tunnel and a narrower branch form a local cave network.
