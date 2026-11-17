@@ -18,10 +18,10 @@ const WORLD_MIN_Y = -64;
 const WORLD_MAX_Y = 319;
 const HADAL_MIN_Y = -63;
 const HADAL_MAX_Y = 24;
-const FISSURE_MIN_Y = 30;
-const FISSURE_MAX_Y = 120;
-const CEILING_MIN_Y = 128;
-const CEILING_MAX_Y = 140;
+const CAVE_MIN_Y = -59;
+const CAVE_SURFACE_MARGIN = 5;
+const CEILING_MIN_CLEARANCE = 40;
+const CEILING_MAX_CLEARANCE = 60;
 const CEILING_ROOF_Y = 144;
 const PROTECT_RADIUS = 48;
 const PROTECTED_PROPERTY = "meridian:protected_centers";
@@ -167,11 +167,15 @@ function floorTopAtForBiome(x, z, biome) {
   return Math.floor(clamp(height, -52, 16));
 }
 
-function ceilingBottomAt(x, z) {
+function ceilingBottomAt(x, z, biome) {
+  // The visible underside follows the local terrain, like a Nether roofline.
+  // Every point keeps a deterministic 40–60 block vertical gap above the floor.
   const broad = fractalNoise(x, z, 176, 31, 4);
   const detail = fractalNoise(x, z, 58, 32, 3);
-  const height = 134 + (broad - 0.5) * 12 + (detail - 0.5) * 6;
-  return Math.floor(clamp(height, CEILING_MIN_Y, CEILING_MAX_Y));
+  const blend = clamp(broad * 0.65 + detail * 0.35, 0, 0.999999);
+  const clearance = CEILING_MIN_CLEARANCE
+    + Math.floor(blend * (CEILING_MAX_CLEARANCE - CEILING_MIN_CLEARANCE + 1));
+  return floorTopAtForBiome(x, z, biome) + clearance;
 }
 
 function block(id) {
@@ -258,7 +262,7 @@ const GENERATOR_CONTEXT = {
   isProtected,
 };
 
-function* generateFissureWalls(dimension, chunkX, chunkZ) {
+function* generateFissureWalls(dimension, chunkX, chunkZ, biome) {
   const originX = chunkX * 16;
   const originZ = chunkZ * 16;
   for (let cellX = 0; cellX < 4; cellX++) {
@@ -273,18 +277,22 @@ function* generateFissureWalls(dimension, chunkX, chunkZ) {
       }
       const ridge = ridgeNoise(sx, sz, 44, 61);
       if (ridge > 0.94) {
-        const baseY = FISSURE_MIN_Y + Math.floor(fractalNoise(sx, sz, 88, 62, 2) * 15);
-        const height = 28 + Math.floor(fractalNoise(sx, sz, 38, 63, 3) * 58);
-        const topY = Math.min(FISSURE_MAX_Y - 2, baseY + height);
+        const floorY = floorTopAtForBiome(sx, sz, biome);
+        const roofY = ceilingBottomAt(sx, sz, biome);
+        const baseY = floorY + 2 + Math.floor(fractalNoise(sx, sz, 88, 62, 2) * 3);
+        const desiredHeight = 16 + Math.floor(fractalNoise(sx, sz, 38, 63, 3) * 28);
+        const topY = Math.min(roofY - 5, baseY + desiredHeight);
+        if (topY <= baseY + 8) {
+          yield;
+          continue;
+        }
         put(dimension, x, baseY, z, x + 3, baseY + 5, z + 3, "meridian:sulfuric_basalt");
         yield;
-        if (topY > baseY + 10) {
-          put(dimension, x + 1, baseY + 6, z + 1, x + 2, topY - 4, z + 2, "meridian:sulfuric_basalt");
-          put(dimension, x + 1, baseY + 10, z + 1, x + 2, topY - 5, z + 2, "meridian:gloomstone");
-          yield;
-          put(dimension, x + 1, topY - 3, z + 1, x + 2, topY, z + 2, "meridian:sulfuric_basalt");
-          yield;
-        }
+        put(dimension, x + 1, baseY + 6, z + 1, x + 2, topY - 4, z + 2, "meridian:sulfuric_basalt");
+        put(dimension, x + 1, baseY + 10, z + 1, x + 2, topY - 5, z + 2, "meridian:gloomstone");
+        yield;
+        put(dimension, x + 1, topY - 3, z + 1, x + 2, topY, z + 2, "meridian:sulfuric_basalt");
+        yield;
         if (hash01(sx, sz, 64) > 0.62) {
           put(dimension, x + 1, baseY + 7, z + 1, x + 1, baseY + 9, z + 1, "meridian:raw_abyssal_silt_ore");
         }
@@ -294,7 +302,7 @@ function* generateFissureWalls(dimension, chunkX, chunkZ) {
   }
 }
 
-function* generateBlackSmoker(dimension, chunkX, chunkZ) {
+function* generateBlackSmoker(dimension, chunkX, chunkZ, biome) {
   const roll = hash01(chunkX, chunkZ, 71);
   if (roll > 0.46) return;
   const originX = chunkX * 16;
@@ -303,9 +311,15 @@ function* generateBlackSmoker(dimension, chunkX, chunkZ) {
   const centerZ = originZ + 4 + Math.floor(hash01(chunkX, chunkZ, 73) * 8);
   if (isProtected(centerX, centerZ)) return;
 
-  const baseY = 36 + Math.floor(hash01(chunkX, chunkZ, 74) * 38);
-  const topY = Math.min(116, baseY + 26 + Math.floor(hash01(chunkX, chunkZ, 75) * 44));
+  const floorY = floorTopAtForBiome(centerX, centerZ, biome);
+  const roofY = ceilingBottomAt(centerX, centerZ, biome);
+  const baseY = floorY + 2 + Math.floor(hash01(chunkX, chunkZ, 74) * 4);
+  const topLimit = roofY - 5;
+  if (topLimit - baseY < 14) return;
+  const desiredTop = baseY + 24 + Math.floor(hash01(chunkX, chunkZ, 75) * 24);
+  const topY = Math.min(topLimit, desiredTop);
   const height = topY - baseY;
+
   put(dimension, centerX - 4, baseY, centerZ - 4, centerX + 4, baseY + 3, centerZ + 4, "meridian:sulfuric_basalt");
   yield;
   put(dimension, centerX - 3, baseY + 4, centerZ - 3, centerX + 3, baseY + 10, centerZ + 3, "meridian:sulfuric_basalt");
@@ -321,31 +335,191 @@ function* generateBlackSmoker(dimension, chunkX, chunkZ) {
   yield;
 }
 
+function carveCaveBox(dimension, originX, originZ, biome, x, y, z, radiusX, radiusY, radiusZ) {
+  const cx = clamp(Math.round(x), originX, originX + 15);
+  const cz = clamp(Math.round(z), originZ, originZ + 15);
+  const surfaceY = floorTopAtForBiome(cx, cz, biome);
+  const maxCaveY = surfaceY - CAVE_SURFACE_MARGIN;
+  if (maxCaveY <= CAVE_MIN_Y + 1) return false;
 
+  const cy = clamp(Math.round(y), CAVE_MIN_Y + 1, maxCaveY);
+  const fromX = Math.max(originX, Math.floor(cx - radiusX));
+  const toX = Math.min(originX + 15, Math.ceil(cx + radiusX));
+  const fromZ = Math.max(originZ, Math.floor(cz - radiusZ));
+  const toZ = Math.min(originZ + 15, Math.ceil(cz + radiusZ));
+  const fromY = Math.max(CAVE_MIN_Y, cy - Math.max(0, Math.floor(radiusY)));
+  const toY = Math.min(maxCaveY, cy + Math.max(0, Math.floor(radiusY)));
+  if (toX < fromX || toZ < fromZ || toY < fromY) return false;
+
+  put(dimension, fromX, fromY, fromZ, toX, toY, toZ, "minecraft:air");
+  return true;
+}
+
+function* carveCaveChamber(dimension, originX, originZ, biome, centerX, centerY, centerZ, radiusX, radiusY, radiusZ) {
+  for (let dy = -radiusY; dy <= radiusY; dy++) {
+    const shape = Math.sqrt(Math.max(0, 1 - (dy * dy) / ((radiusY + 0.5) * (radiusY + 0.5))));
+    const sliceX = Math.max(1, Math.floor(radiusX * shape));
+    const sliceZ = Math.max(1, Math.floor(radiusZ * shape));
+    carveCaveBox(
+      dimension, originX, originZ, biome,
+      centerX, centerY + dy, centerZ,
+      sliceX, 0, sliceZ,
+    );
+    yield;
+  }
+}
+
+function* carveWindingCave(dimension, chunkX, chunkZ, biome, startX, startY, startZ, steps, radius, verticalRadius, salt) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  let x = startX;
+  let y = startY;
+  let z = startZ;
+  let angle = hash01(Math.floor(startX), Math.floor(startZ), salt) * Math.PI * 2;
+
+  for (let step = 0; step < steps; step++) {
+    const widen = hash01(chunkX * 16 + step, chunkZ * 16 + salt, salt + 1) > 0.88 ? 1 : 0;
+    carveCaveBox(
+      dimension, originX, originZ, biome,
+      x, y, z,
+      radius + widen, verticalRadius, radius + widen,
+    );
+    yield;
+
+    angle += (hash01(chunkX * 16 + step, chunkZ * 16 + salt, salt + 2) - 0.5) * 1.18;
+    x = clamp(x + Math.cos(angle) * 1.35, originX + 1, originX + 14);
+    z = clamp(z + Math.sin(angle) * 1.35, originZ + 1, originZ + 14);
+    y += (hash01(chunkX * 16 + step, chunkZ * 16 + salt, salt + 3) - 0.5) * 1.55;
+  }
+}
+
+function* connectCaveToChunkEdge(dimension, chunkX, chunkZ, biome, side, centerX, centerY, centerZ) {
+  const originX = chunkX * 16;
+  const originZ = chunkZ * 16;
+  const horizontalEdge = side === "east" || side === "west";
+  const edgeChunkX = side === "east" ? chunkX : side === "west" ? chunkX - 1 : chunkX;
+  const edgeChunkZ = side === "south" ? chunkZ : side === "north" ? chunkZ - 1 : chunkZ;
+  const axis = horizontalEdge ? 0 : 1;
+  const edgeSalt = 730 + axis;
+
+  // Adjacent chunks calculate the same edge key, portal roll, position, and height.
+  if (hash01(edgeChunkX, edgeChunkZ, edgeSalt) > 0.30) return;
+  const along = 3 + Math.floor(hash01(edgeChunkX, edgeChunkZ, edgeSalt + 1) * 10);
+  const phase = hash01(edgeChunkX, edgeChunkZ, edgeSalt + 2) * Math.PI * 2;
+
+  let edgeY = CAVE_MIN_Y + 2;
+  if (horizontalEdge) {
+    const leftBiome = biomeForChunk(edgeChunkX, edgeChunkZ, hash01);
+    const rightBiome = biomeForChunk(edgeChunkX + 1, edgeChunkZ, hash01);
+    const worldZ = originZ + along;
+    const leftSurface = floorTopAtForBiome(edgeChunkX * 16 + 15, worldZ, leftBiome);
+    const rightSurface = floorTopAtForBiome((edgeChunkX + 1) * 16, worldZ, rightBiome);
+    const top = Math.min(leftSurface, rightSurface) - CAVE_SURFACE_MARGIN;
+    if (top <= edgeY + 1) return;
+    const level = Math.sqrt(hash01(edgeChunkX, edgeChunkZ, edgeSalt + 3));
+    edgeY += Math.floor(level * (top - edgeY));
+  } else {
+    const northBiome = biomeForChunk(edgeChunkX, edgeChunkZ, hash01);
+    const southBiome = biomeForChunk(edgeChunkX, edgeChunkZ + 1, hash01);
+    const worldX = originX + along;
+    const northSurface = floorTopAtForBiome(worldX, edgeChunkZ * 16 + 15, northBiome);
+    const southSurface = floorTopAtForBiome(worldX, (edgeChunkZ + 1) * 16, southBiome);
+    const top = Math.min(northSurface, southSurface) - CAVE_SURFACE_MARGIN;
+    if (top <= edgeY + 1) return;
+    const level = Math.sqrt(hash01(edgeChunkX, edgeChunkZ, edgeSalt + 3));
+    edgeY += Math.floor(level * (top - edgeY));
+  }
+
+  let targetX = originX + 8;
+  let targetZ = originZ + 8;
+  if (side === "east") { targetX = originX + 15; targetZ = originZ + along; }
+  else if (side === "west") { targetX = originX; targetZ = originZ + along; }
+  else if (side === "south") { targetX = originX + along; targetZ = originZ + 15; }
+  else { targetX = originX + along; targetZ = originZ; }
+
+  const steps = 8;
+  for (let step = 1; step <= steps; step++) {
+    const t = step / steps;
+    const curve = Math.sin(t * Math.PI) * Math.sin(t * Math.PI * 2 + phase) * 1.15;
+    const x = centerX + (targetX - centerX) * t + (horizontalEdge ? 0 : curve);
+    const z = centerZ + (targetZ - centerZ) * t + (horizontalEdge ? curve : 0);
+    const y = centerY + (edgeY - centerY) * t
+      + Math.sin(t * Math.PI * 2 + phase) * 0.75;
+    carveCaveBox(dimension, originX, originZ, biome, x, y, z, 2, 1, 2);
+    yield;
+  }
+}
 
 function* generateUndergroundCaves(dimension, chunkX, chunkZ, biome) {
-  const ox = chunkX * 16, oz = chunkZ * 16;
-  for (let cave = 0; cave < 2; cave++) {
-    const startX = ox + 2 + Math.floor(hash01(chunkX, chunkZ, 310 + cave) * 12);
-    const startZ = oz + 2 + Math.floor(hash01(chunkX, chunkZ, 320 + cave) * 12);
-    if (isProtected(startX, startZ)) { yield; continue; }
-    const surface = floorTopAtForBiome(startX, startZ, biome);
-    // Very thin shelves do not have enough stone depth for safe enclosed caves.
-    if (surface < -53) { yield; continue; }
-    let x = startX, z = startZ;
-    let y = -55 + Math.floor(hash01(chunkX, chunkZ, 330 + cave) * Math.max(2, surface + 49));
-    const steps = 7 + Math.floor(hash01(chunkX, chunkZ, 340 + cave) * 4);
-    for (let step = 0; step < steps; step++) {
-      const radius = hash01(chunkX * 16 + step, chunkZ * 16 + cave, 350) > 0.78 ? 2 : 1;
-      const cx = clamp(Math.floor(x), ox + 1, ox + 14);
-      const cz = clamp(Math.floor(z), oz + 1, oz + 14);
-      const cy = clamp(Math.floor(y), -59, surface - 5);
-      put(dimension, cx - radius, cy - 1, cz - radius, cx + radius, cy + 1, cz + radius, "minecraft:air");
-      yield;
-      x += Math.sin((step + 1) * 1.31 + cave) * 1.2;
-      z += Math.cos((step + 1) * 1.17 + cave) * 1.2;
-      y += Math.sin((step + 1) * 0.83 + cave) * 0.45;
+  const ox = chunkX * 16;
+  const oz = chunkZ * 16;
+  const centerX = ox + 5 + Math.floor(hash01(chunkX, chunkZ, 310) * 6);
+  const centerZ = oz + 5 + Math.floor(hash01(chunkX, chunkZ, 311) * 6);
+  const surface = floorTopAtForBiome(centerX, centerZ, biome);
+
+  // Deep ocean trenches do not have enough stone thickness for safe multi-level caves.
+  if (surface < -50) return;
+
+  // The upper system deliberately sits close to the local surface, rather than
+  // concentrating every passage at the bottom of the terrain column.
+  const upperDepth = 6 + Math.floor(hash01(chunkX, chunkZ, 312) * 8);
+  const upperY = clamp(surface - upperDepth, CAVE_MIN_Y + 3, surface - CAVE_SURFACE_MARGIN - 1);
+
+  // Cheese-style chamber: broad, irregular rooms with a rounded ceiling and floor.
+  if (hash01(chunkX, chunkZ, 313) < 0.62) {
+    const roomX = 4 + Math.floor(hash01(chunkX, chunkZ, 314) * 4);
+    const roomZ = 4 + Math.floor(hash01(chunkX, chunkZ, 315) * 4);
+    const roomY = 3 + Math.floor(hash01(chunkX, chunkZ, 316) * 3);
+    yield* carveCaveChamber(dimension, ox, oz, biome, centerX, upperY, centerZ, roomX, roomY, roomZ);
+  }
+
+  // Spaghetti-style main tunnel and a narrower branch form a local cave network.
+  const mainSteps = 20 + Math.floor(hash01(chunkX, chunkZ, 317) * 8);
+  yield* carveWindingCave(dimension, chunkX, chunkZ, biome, centerX, upperY, centerZ, mainSteps, 2, 1, 318);
+  const branchStartX = clamp(centerX + (hash01(chunkX, chunkZ, 319) > 0.5 ? 3 : -3), ox + 1, ox + 14);
+  const branchStartZ = clamp(centerZ + (hash01(chunkX, chunkZ, 320) > 0.5 ? 3 : -3), oz + 1, oz + 14);
+  const branchY = clamp(upperY - 3, CAVE_MIN_Y + 2, surface - CAVE_SURFACE_MARGIN - 1);
+  yield* carveWindingCave(
+    dimension, chunkX, chunkZ, biome,
+    branchStartX, branchY, branchStartZ,
+    11 + Math.floor(hash01(chunkX, chunkZ, 321) * 7), 1, 1, 322,
+  );
+
+  // A lower noodle passage and occasional lower chamber add depth variety.
+  const lowerY = clamp(upperY - (8 + Math.floor(hash01(chunkX, chunkZ, 323) * 15)), CAVE_MIN_Y + 2, upperY - 4);
+  if (lowerY < upperY - 5) {
+    if (hash01(chunkX, chunkZ, 324) < 0.28) {
+      yield* carveCaveChamber(
+        dimension, ox, oz, biome,
+        centerX + 1, lowerY, centerZ - 1,
+        3 + Math.floor(hash01(chunkX, chunkZ, 325) * 3),
+        2 + Math.floor(hash01(chunkX, chunkZ, 326) * 2),
+        3 + Math.floor(hash01(chunkX, chunkZ, 327) * 3),
+      );
     }
+    yield* carveWindingCave(
+      dimension, chunkX, chunkZ, biome,
+      centerX + 1, lowerY, centerZ - 1,
+      14 + Math.floor(hash01(chunkX, chunkZ, 328) * 7), 1, 1, 329,
+    );
+
+    // Occasional narrow vertical shafts connect the upper and lower cave levels.
+    if (hash01(chunkX, chunkZ, 330) < 0.24) {
+      const distance = upperY - lowerY;
+      const shaftSteps = Math.max(4, Math.ceil(distance / 2));
+      for (let step = 0; step <= shaftSteps; step++) {
+        const t = step / shaftSteps;
+        const driftX = Math.sin(t * Math.PI * 2) * 1.2;
+        const driftZ = Math.cos(t * Math.PI * 2) * 1.2;
+        carveCaveBox(dimension, ox, oz, biome, centerX + driftX, lowerY + distance * t, centerZ + driftZ, 1, 0, 1);
+        yield;
+      }
+    }
+  }
+
+  // Deterministic portals line up across chunk borders without editing adjacent chunks.
+  for (const side of ["north", "south", "west", "east"]) {
+    yield* connectCaveToChunkEdge(dimension, chunkX, chunkZ, biome, side, centerX, upperY, centerZ);
   }
 }
 
@@ -410,7 +584,7 @@ function* generateInvertedCeiling(dimension, chunkX, chunkZ, biome) {
       const z = originZ + tileZ * TILE_SIZE;
       const sx = x + TILE_SIZE / 2;
       const sz = z + TILE_SIZE / 2;
-      const undersideY = ceilingBottomAt(sx, sz);
+      const undersideY = ceilingBottomAt(sx, sz, biome);
       put(dimension, x, undersideY, z, x + 1, undersideY + 2, z + 1, "meridian:petrified_gloom_roots");
       yield;
       // A thick, continuous low roof replaces the old ceiling columns that reached Y=319.
@@ -440,7 +614,7 @@ function* buildInvertedCathedral(dimension, chunkX, chunkZ, biome) {
   const centerZ = originZ + 8;
   if (isProtected(centerX, centerZ)) return;
 
-  const anchorY = ceilingBottomAt(centerX, centerZ) - 2;
+  const anchorY = ceilingBottomAt(centerX, centerZ, biome) - 2;
   const floorY = floorTopAtForBiome(centerX, centerZ, biome);
   // The inverted structure is scaled to the actual local terrain height and reaches the ground.
   const lowerY = Math.max(WORLD_MIN_Y + 1, floorY + 1);
@@ -475,11 +649,11 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
       yield* generateShatteredShelfFloor(dimension, chunkX, chunkZ, GENERATOR_CONTEXT);
     } else if (biome === "sulfuric_caldera") {
       yield* generateSulfuricCalderaFloor(dimension, chunkX, chunkZ, GENERATOR_CONTEXT);
-      yield* generateBlackSmoker(dimension, chunkX, chunkZ);
+      yield* generateBlackSmoker(dimension, chunkX, chunkZ, biome);
     } else {
       yield* generatePetrifiedNecropolisFloor(dimension, chunkX, chunkZ, GENERATOR_CONTEXT);
     }
-    yield* generateFissureWalls(dimension, chunkX, chunkZ);
+    yield* generateFissureWalls(dimension, chunkX, chunkZ, biome);
     yield* generateUndergroundCaves(dimension, chunkX, chunkZ, biome);
     yield* generateOreVeins(dimension, chunkX, chunkZ, biome);
     yield* generateInvertedCeiling(dimension, chunkX, chunkZ, biome);
@@ -487,7 +661,7 @@ function* generateChunkJob(dimension, chunkX, chunkZ, complete) {
     const cathedralChance = biome === "petrified_necropolis" ? 0.075 : 0.012;
     yield* buildInvertedCathedral(dimension, chunkX, chunkZ, biome);
     if (hash01(chunkX, chunkZ, 101) < 0.009 && hash01(chunkX, chunkZ, 91) >= cathedralChance && !isProtected(originX + 8, originZ + 8)) {
-      yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(originX + 8, originZ + 8), {
+      yield* sanctuarySteps(dimension, chunkX, chunkZ, ceilingBottomAt(originX + 8, originZ + 8, biome), {
         put: (ax, ay, az, bx, by, bz, id) => put(dimension, ax, ay, az, bx, by, bz, id),
         block,
       });

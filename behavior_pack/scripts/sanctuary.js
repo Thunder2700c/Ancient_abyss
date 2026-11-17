@@ -39,10 +39,6 @@ export function* sanctuarySteps(dimension, chunkX, chunkZ, ceilBottom, ctx) {
   const cz = chunkZ * 16 + 8;
   const yTop = ceilBottom - 14;
   const yBottom = yTop - (BELL_HEIGHT - 1);
-  if (yBottom < 96) {
-    return;
-  }
-
   ctx.put(cx, yTop + 1, cz, cx, ceilBottom - 1, cz, SHELL_BLOCK);
 
   for (let k = 0; k < BELL_HEIGHT; k++) {

@@ -18,11 +18,11 @@
 //    not dimension-scoped; pausing the built-in daylight clock would also pause day/night in the Overworld.
 //    The Abyss therefore hides the changing sky behind an opaque roof rather than altering the world's clock.
 //
-// 3. Zero natural skylight: APPROXIMATION. There is no per-dimension "has_skylight" switch. A lower opaque
-//    ceiling is built at Y=144. requestSkySeal() also lazily seals a 96x96 area at Y=144 around each player,
-//    using an air-only filter so existing structures and player-placed blocks are not overwritten.
-//    Phase 21 generates the visible undulating underside (Gloom-Roots and Fractured Slate) below this roof.
-//    Unvisited areas are not sealed until a player approaches them.
+// 3. Zero natural skylight: APPROXIMATION. There is no per-dimension "has_skylight" switch.
+//    Phase 21 generates a terrain-following visible roof underside 40–60 blocks above each local
+//    floor. Its opaque Fractured Slate mass continues upward to the fixed safety cap at Y=144.
+//    requestSkySeal() also lazily seals a 96x96 area at Y=144 with an air-only filter, preserving
+//    player builds. Unvisited areas are sealed only when a player approaches them.
 //
 // 4. Ambient light floor 0.08: NOT POSSIBLE IN BEDROCK. Reason: ambient/minimum brightness is a client-side
 //    rendering setting with no scripting or dimension component. Workaround: none needed; the dimension stays
