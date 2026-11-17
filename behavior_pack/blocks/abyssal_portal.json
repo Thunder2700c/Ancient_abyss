@@ -1,0 +1,49 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:block": {
+    "description": {
+      "identifier": "meridian:abyssal_portal",
+      "states": {
+        "meridian:axis": [
+          "x",
+          "z"
+        ]
+      },
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
+    },
+    "components": {
+      "minecraft:destructible_by_mining": false,
+      "minecraft:destructible_by_explosion": false,
+      "minecraft:collision_box": false,
+      "minecraft:selection_box": false,
+      "minecraft:light_emission": 4,
+      "minecraft:light_dampening": 0,
+      "minecraft:geometry": "geometry.abyssal_portal",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "abyssal_portal",
+          "render_method": "blend",
+          "face_dimming": false,
+          "ambient_occlusion": 0
+        }
+      }
+    },
+    "permutations": [
+      {
+        "condition": "q.block_state('meridian:axis') == 'z'",
+        "components": {
+          "minecraft:transformation": {
+            "rotation": [
+              0,
+              90,
+              0
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

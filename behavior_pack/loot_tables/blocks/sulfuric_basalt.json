@@ -1,0 +1,14 @@
+{
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "item",
+          "name": "meridian:sulfuric_basalt",
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}

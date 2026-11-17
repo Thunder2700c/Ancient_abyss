@@ -1,0 +1,35 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.gloom_door",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 3,
+        "visible_bounds_offset": [0, 1, 0]
+      },
+      "bones": [
+        {
+          "name": "door_panel",
+          "pivot": [-8, 0, -7],
+          "cubes": [
+            {
+              "origin": [-8, 0, -8],
+              "size": [16, 16, 2],
+              "uv": {
+                "north": {"uv": [0, 0], "uv_size": [64, 64]},
+                "south": {"uv": [0, 0], "uv_size": [64, 64]},
+                "east": {"uv": [0, 0], "uv_size": [8, 64]},
+                "west": {"uv": [56, 0], "uv_size": [8, 64]},
+                "up": {"uv": [0, 0], "uv_size": [64, 8]},
+                "down": {"uv": [0, 56], "uv_size": [64, 8]}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

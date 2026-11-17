@@ -1,0 +1,60 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:item": {
+    "description": {
+      "identifier": "meridian:abyssalite_pickaxe",
+      "menu_category": {
+        "category": "equipment",
+        "group": "meridian:itemGroup.name.abyss_equipment"
+      }
+    },
+    "components": {
+      "minecraft:icon": "abyssalite_pickaxe",
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:hover_text_color": "dark_purple",
+      "minecraft:can_destroy_in_creative": false,
+      "minecraft:tags": {
+        "tags": [
+          "minecraft:is_pickaxe",
+          "minecraft:is_tool",
+          "meridian:abyssalite_gear",
+          "meridian:pierces_glitch_barrier"
+        ]
+      },
+      "minecraft:damage": 7,
+      "minecraft:durability": {
+        "max_durability": 2800
+      },
+      "minecraft:repairable": {
+        "repair_items": [
+          {
+            "items": [
+              "meridian:abyssalite_ingot"
+            ],
+            "repair_amount": "context.other->query.remaining_durability + 700"
+          }
+        ]
+      },
+      "minecraft:enchantable": {
+        "slot": "pickaxe",
+        "value": 18
+      },
+      "minecraft:digger": {
+        "use_efficiency": true,
+        "destroy_speeds": [
+          {
+            "block": {
+              "tags": "query.any_tag('stone', 'metal', 'diamond_tier', 'iron_tier')"
+            },
+            "speed": 12
+          },
+          {
+            "block": "minecraft:reinforced_deepslate",
+            "speed": 15
+          }
+        ]
+      }
+    }
+  }
+}

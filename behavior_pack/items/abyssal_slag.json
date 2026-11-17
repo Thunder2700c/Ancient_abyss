@@ -1,0 +1,16 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:item": {
+    "description": {
+      "identifier": "meridian:abyssal_slag",
+      "menu_category": {
+        "category": "items",
+        "group": "meridian:itemGroup.name.abyss_items"
+      }
+    },
+    "components": {
+      "minecraft:icon": "abyssal_slag",
+      "minecraft:max_stack_size": 64
+    }
+  }
+}

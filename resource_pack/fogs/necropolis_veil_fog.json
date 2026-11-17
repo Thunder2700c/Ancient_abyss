@@ -1,0 +1,40 @@
+{
+  "format_version": "1.16.100",
+  "minecraft:fog_settings": {
+    "description": {
+      "identifier": "meridian:necropolis_veil_fog"
+    },
+    "distance": {
+      "air": {
+        "fog_start": 80,
+        "fog_end": 220,
+        "fog_color": "#241c3d",
+        "render_distance_type": "fixed"
+      },
+      "water": {
+        "fog_start": 0,
+        "fog_end": 18,
+        "fog_color": "#17152c",
+        "render_distance_type": "fixed"
+      },
+      "weather": {
+        "fog_start": 70,
+        "fog_end": 190,
+        "fog_color": "#241c3d",
+        "render_distance_type": "fixed"
+      },
+      "lava": {
+        "fog_start": 0,
+        "fog_end": 6,
+        "fog_color": "#682018",
+        "render_distance_type": "fixed"
+      },
+      "lava_resistance": {
+        "fog_start": 2,
+        "fog_end": 8,
+        "fog_color": "#682018",
+        "render_distance_type": "fixed"
+      }
+    }
+  }
+}

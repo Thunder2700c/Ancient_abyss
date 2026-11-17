@@ -1,0 +1,11 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:recipe_furnace": {
+    "description": {
+      "identifier": "meridian:abyssal_slag_furnace"
+    },
+    "tags": ["furnace"],
+    "input": "meridian:raw_abyssal_silt",
+    "output": "meridian:abyssal_slag"
+  }
+}

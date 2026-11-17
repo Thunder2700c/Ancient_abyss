@@ -1,0 +1,32 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.sculk_altar",
+        "texture_width": 16,
+        "texture_height": 16
+      },
+      "bones": [
+        {
+          "name": "altar",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-8, 0, -8],
+              "size": [16, 16, 16],
+              "uv": {
+                "north": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "*" },
+                "south": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "*" },
+                "east": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "*" },
+                "west": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "*" },
+                "up": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "up" },
+                "down": { "uv": [0, 0], "uv_size": [16, 16], "material_instance": "down" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

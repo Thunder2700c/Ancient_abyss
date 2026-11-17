@@ -1,0 +1,27 @@
+{
+  "format_version": "1.21.60",
+  "minecraft:block": {
+    "description": {
+      "identifier": "meridian:chiseled_abyssal_bricks",
+      "menu_category": {
+        "category": "construction",
+        "group": "meridian:itemGroup.name.abyss_blocks"
+      }
+    },
+    "components": {
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 4
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 9
+      },
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "chiseled_abyssal_bricks",
+          "render_method": "opaque"
+        }
+      }
+    }
+  }
+}

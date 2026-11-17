@@ -1,0 +1,113 @@
+## Pack Details
+pack.name=The Ancient Abyss
+pack.description=A deep-space inverted chasm dimension governed by cryogenic silence and void physics.
+
+## Blocks
+tile.meridian:sculk_altar.name=Sculk Altar
+tile.meridian:abyssal_portal.name=Abyssal Portal
+tile.meridian:abyssal_silt.name=Abyssal Silt
+tile.meridian:fractured_slate.name=Fractured Slate
+tile.meridian:polished_slate.name=Polished Slate
+tile.meridian:fractured_slate_slab.name=Fractured Slate Slab
+tile.meridian:fractured_slate_stairs.name=Fractured Slate Stairs
+tile.meridian:polished_slate_slab.name=Polished Slate Slab
+tile.meridian:polished_slate_stairs.name=Polished Slate Stairs
+tile.meridian:chiseled_abyssal_bricks.name=Chiseled Abyssal Bricks
+tile.meridian:gloomstone.name=Gloomstone
+tile.meridian:sulfuric_basalt.name=Sulfuric Basalt
+tile.meridian:raw_abyssal_silt_ore.name=Raw Abyssal Silt Ore
+tile.meridian:abyssal_iron_ore.name=Abyssal Iron Ore
+tile.meridian:abyssal_gold_ore.name=Abyssal Gold Ore
+tile.meridian:abyssalite_ore_garden.name=Garden Abyssalite Ore
+tile.meridian:abyssalite_ore_shelf.name=Shattered Abyssalite Ore
+tile.meridian:abyssalite_ore_caldera.name=Sulfuric Abyssalite Ore
+tile.meridian:abyssalite_ore_necropolis.name=Necropolis Abyssalite Ore
+tile.meridian:petrified_gloom_roots.name=Petrified Gloom-Roots
+tile.meridian:gloom_planks.name=Petrified Gloom Planks
+tile.meridian:gloom_slab.name=Petrified Gloom Slab
+tile.meridian:gloom_stairs.name=Petrified Gloom Stairs
+tile.meridian:gloom_door.name=Petrified Gloom Door
+tile.meridian:glow_polyps.name=Glow-Polyps
+tile.meridian:tendril_coral.name=Tendril Coral
+tile.meridian:void_lantern.name=Void Lantern
+tile.meridian:resonance_ward.name=Resonance Ward
+tile.meridian:resonance_cocoon.name=Resonance Cocoon
+tile.meridian:harmonic_pylon.name=Resonant Village Pylon
+tile.meridian:hollow_receptacle.name=The Hollow Receptacle
+
+## Items & Progression
+item.meridian:null_core.name=Null Core
+item.meridian:raw_abyssal_silt.name=Raw Abyssal Silt
+item.meridian:abyssal_slag.name=Abyssal Slag
+item.meridian:abyssalite_ingot.name=Abyssalite Ingot
+item.meridian:abyss_upgrade_smithing_template.name=Abyss Upgrade Smithing Template
+item.meridian:padded_treads.name=Padded Treads
+item.meridian:gloom_stick.name=Petrified Gloom Stick
+item.meridian:gloom_door.name=Petrified Gloom Door
+item.meridian:abyssal_anchor.name=Abyssal Anchor
+item.meridian:resonant_core.name=Resonant Core
+item.meridian:inverted_recall_sigil.name=Inverted Recall Sigil
+item.meridian:heart_of_herobrine.name=The Heart of Herobrine
+
+## Abyssalite Equipment
+item.meridian:abyssalite_sword.name=Abyssalite Sword
+item.meridian:abyssalite_pickaxe.name=Abyssalite Pickaxe
+item.meridian:abyssalite_axe.name=Abyssalite Axe
+item.meridian:abyssalite_shovel.name=Abyssalite Shovel
+item.meridian:abyssalite_hoe.name=Abyssalite Hoe
+item.meridian:abyssalite_helmet.name=Abyssalite Helmet
+item.meridian:abyssalite_chestplate.name=Abyssalite Chestplate
+item.meridian:abyssalite_leggings.name=Abyssalite Leggings
+item.meridian:abyssalite_boots.name=Abyssalite Boots
+
+## Entities & Bosses
+entity.meridian:echo_dweller.name=Echo Dweller
+item.spawn_egg.entity.meridian:echo_dweller.name=Spawn Echo Dweller
+entity.meridian:resonant_warden.name=Resonant Warden
+item.spawn_egg.entity.meridian:resonant_warden.name=Spawn Resonant Warden
+entity.meridian:tectonic_weft_mage.name=Tectonic Weft Mage
+item.spawn_egg.entity.meridian:tectonic_weft_mage.name=Spawn Tectonic Weft Mage
+entity.meridian:tectonic_colossus_warden.name=Tectonic Colossus Warden
+item.spawn_egg.entity.meridian:tectonic_colossus_warden.name=Spawn Tectonic Colossus Warden
+entity.meridian:frost_siphon_mage.name=Frost Siphon Mage
+item.spawn_egg.entity.meridian:frost_siphon_mage.name=Spawn Frost Siphon Mage
+entity.meridian:frostbitten_warden.name=Frostbitten Warden
+item.spawn_egg.entity.meridian:frostbitten_warden.name=Spawn Frostbitten Warden
+entity.meridian:rift_arcanist_mage.name=Rift Arcanist Mage
+item.spawn_egg.entity.meridian:rift_arcanist_mage.name=Spawn Rift Arcanist Mage
+entity.meridian:singularity_warden.name=Singularity Warden
+item.spawn_egg.entity.meridian:singularity_warden.name=Spawn Singularity Warden
+entity.meridian:broken_survivor.name=The Broken Survivor
+item.spawn_egg.entity.meridian:broken_survivor.name=Spawn The Broken Survivor
+entity.meridian:herobrine.name=Herobrine
+item.spawn_egg.entity.meridian:herobrine.name=Spawn Herobrine
+
+## Enchantments & Status Effects
+enchantment.meridian:padded_treads=Padded Treads
+potion.meridian:specters_clarity=Specter's Clarity
+
+## Narrative & In-Game System Messages
+message.meridian.void_tether=§3[Void Tether]§r §7A dark spatial pulse flings you upward from the abyss!
+message.meridian.anti_elytra=§4[Atmospheric Pressure]§r §cCrushing density strips rocket thrust and shreds your wings!
+message.meridian.bed_explode=§1[Dimensional Rejection]§r §7The crushing silence shatters the wood.
+message.meridian.anchor_explode=§1[Dimensional Rejection]§r §7The cryogenic chill violently rejects the Nether's core.
+message.meridian.cocoon_purge=§b[Bio-Sanctuary]§r §7Pressurized resonance cleanses your afflictions and anchors your soul.
+message.meridian.cocoon_implode=§5[Implosion]§r §7Atmospheric decompression triggers a devastating vacuum rupture!
+message.meridian.herobrine_creative_ban=§4§l[HEROBRINE]§r §cYou dared challenge a god with stolen power. Creative mode locked for 48 hours.
+message.meridian.herobrine_cheat_lock=§4§l[Access Denied]§r §7Herobrine rewrote your console. Commands locked for 10 hours.
+message.meridian.survivor_dialogue_1=§6[The Broken Survivor]§r §7Turn back. Please... just turn around.
+message.meridian.survivor_dialogue_yield=§6[The Broken Survivor]§r §7Enough... stop swinging. My fight ends here.
+
+## Ancient Abyss creative inventory groups
+meridian:itemGroup.name.abyss_blocks=Ancient Abyss Blocks
+meridian:itemGroup.name.abyss_flora=Ancient Abyss Flora
+meridian:itemGroup.name.abyss_equipment=Abyssalite Equipment
+meridian:itemGroup.name.abyss_items=Ancient Abyss Items
+tile.meridian:abyssal_iron_garden.name=Abyssal Garden Iron Ore
+tile.meridian:abyssal_gold_garden.name=Abyssal Garden Gold Ore
+tile.meridian:abyssal_iron_shelf.name=Shattered Shelf Iron Ore
+tile.meridian:abyssal_gold_shelf.name=Shattered Shelf Gold Ore
+tile.meridian:abyssal_iron_caldera.name=Sulfuric Caldera Iron Ore
+tile.meridian:abyssal_gold_caldera.name=Sulfuric Caldera Gold Ore
+tile.meridian:abyssal_iron_necropolis.name=Petrified Necropolis Iron Ore
+tile.meridian:abyssal_gold_necropolis.name=Petrified Necropolis Gold Ore

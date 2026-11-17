@@ -1,0 +1,35 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:recipe_shaped": {
+    "description": {
+      "identifier": "meridian:resonance_cocoon"
+    },
+    "tags": ["crafting_table"],
+    "pattern": [
+      "WWW",
+      "CSC",
+      "DMD"
+    ],
+    "key": {
+      "W": {
+        "item": "minecraft:black_wool"
+      },
+      "C": {
+        "item": "minecraft:crying_obsidian"
+      },
+      "S": {
+        "item": "minecraft:calibrated_sculk_sensor"
+      },
+      "D": {
+        "item": "minecraft:chiseled_deepslate"
+      },
+      "M": {
+        "item": "meridian:raw_abyssal_silt"
+      }
+    },
+    "result": {
+      "item": "meridian:resonance_cocoon",
+      "count": 1
+    }
+  }
+}
