@@ -111,3 +111,14 @@ tile.meridian:abyssal_iron_caldera.name=Sulfuric Caldera Iron Ore
 tile.meridian:abyssal_gold_caldera.name=Sulfuric Caldera Gold Ore
 tile.meridian:abyssal_iron_necropolis.name=Petrified Necropolis Iron Ore
 tile.meridian:abyssal_gold_necropolis.name=Petrified Necropolis Gold Ore
+
+## Phase 26 — Cryo Duo
+entity.meridian:frost_siphon_mage.name=Frost Siphon Mage
+item.spawn_egg.entity.meridian:frost_siphon_mage.name=Spawn Frost Siphon Mage
+entity.meridian:frostbitten_warden.name=Frostbitten Warden
+item.spawn_egg.entity.meridian:frostbitten_warden.name=Spawn Frostbitten Warden
+## Phase 27 — Void Duo
+entity.meridian:rift_arcanist_mage.name=Rift Arcanist Mage
+item.spawn_egg.entity.meridian:rift_arcanist_mage.name=Spawn Rift Arcanist Mage
+entity.meridian:singularity_warden.name=Singularity Warden
+item.spawn_egg.entity.meridian:singularity_warden.name=Spawn Singularity Warden

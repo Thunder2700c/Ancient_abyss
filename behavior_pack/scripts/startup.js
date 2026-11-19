@@ -15,6 +15,8 @@ import "./trade_handler.js";
 import "./harmonic_pylon.js";
 import { initResonantWarden } from "./resonant_warden.js";
 import { initTectonicDuo } from "./tectonic_duo.js";
+import { initCryoDuo } from "./cryo_duo.js";
+import { initVoidDuo } from "./void_duo.js";
 import { initPaddedTreads } from "./padded_treads.js";
 
 // These modules register block/item event handlers or scheduled gameplay systems on import.
@@ -46,3 +48,5 @@ initEchoDweller();
 initPaddedTreads();
 initResonantWarden();
 initTectonicDuo();
+initCryoDuo();
+initVoidDuo();

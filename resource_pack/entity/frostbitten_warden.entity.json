@@ -1,0 +1,36 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "meridian:frostbitten_warden",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/warden/warden"
+      },
+      "geometry": {
+        "default": "geometry.tectonic_colossus_warden"
+      },
+      "animations": {
+        "idle": "animation.resonant_warden.idle",
+        "walk": "animation.resonant_warden.walk",
+        "look": "animation.resonant_warden.look"
+      },
+      "scripts": {
+        "animate": [
+          "idle",
+          "walk",
+          "look"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.resonant_warden"
+      ],
+      "spawn_egg": {
+        "base_color": "#20384b",
+        "overlay_color": "#8beaff"
+      }
+    }
+  }
+}
